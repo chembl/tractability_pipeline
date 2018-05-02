@@ -214,23 +214,35 @@ class Small_molecule_buckets(object):
         :return:
         '''
 
+        def other_func(x):
+            return tuple(x)
+
         self._search_chembl_clinical()
         self._process_protein_complexes()
 
-        df = self.all_chembl_targets.merge(self.id_xref, how='outer', on='accession')
-        df2 = df.copy(deep=True)
-        grouped_df = df2.groupby('ensembl_gene_id', as_index=False).first()
-        grouped_df['max_phase'] = df.groupby('ensembl_gene_id', as_index=False).max()['max_phase']
-        grouped_df['max_phase'].fillna(0, inplace=True)
+        self.gene_xref = self.id_xref[['accession','ensembl_gene_id']]
 
-        # Bucket 1: Targets with Phase 4
-        self.b1 = grouped_df[grouped_df['max_phase'] == 4]
+        self.out_df = self.all_chembl_targets.merge(self.gene_xref, how='outer', on='accession')
 
-        # Bucket 2: Targets >= Phase 2
-        self.b2 = grouped_df[(grouped_df['max_phase'] < 4) & (grouped_df['max_phase'] >= 2)]
+        self.out_df.drop(['component_id', 'drug_name', 'ref_id', 'ref_type', 'tid', 'molregno',
+                          'parent_molregno', 'ref_url'], axis=1, inplace=True)
 
-        # Bucket 3: Targets with lead op or preclinical SM ################## Assume phase 0-2 for now
-        self.b3 = grouped_df[(grouped_df['max_phase'] < 2) & (grouped_df['max_phase'] > 0)]
+        f = {x: 'first' for x in self.out_df.columns}
+        f['max_phase'] = 'max'
+        f['pref_name'] = other_func
+        f['moa_chembl'] = other_func
+
+        self.out_df = self.out_df.groupby(['ensembl_gene_id']).agg(f)
+
+        self.out_df['Bucket_1'] = 0
+        self.out_df['Bucket_2'] = 0
+        self.out_df['Bucket_3'] = 0
+
+        self.out_df.loc[(self.out_df['max_phase'] == 4), 'Bucket_1'] = 1
+        self.out_df.loc[(self.out_df['max_phase'] < 4) & (self.out_df['max_phase'] >= 2), 'Bucket_2'] = 1
+        self.out_df.loc[(self.out_df['max_phase'] < 2) & (self.out_df['max_phase'] > 0), 'Bucket_3'] = 1
+
+
 
     ##############################################################################################################
     #
@@ -341,10 +353,10 @@ class Small_molecule_buckets(object):
         # Accession numbers with PDB ligand
         self.acc_known_lig = list(set([self.pdb_map[p] for p in self.good_ligands]))
 
-        df = self.id_xref.copy(deep=True)
-        df['known_pdb_ligand'] = df['accession'].apply(self._known_pdb_ligand)
 
-        self.b4 = df[df['known_pdb_ligand'] == 1]
+        self.out_df['Bucket_4'] = self.out_df['accession'].apply(self._known_pdb_ligand)
+
+
 
     ##############################################################################################################
     #
@@ -358,12 +370,19 @@ class Small_molecule_buckets(object):
         Does the target have a DrugEBIlity ensemble score >=0.7 (bucket 5) or  0<score<0.7 (bucket 6)
         '''
         df = pd.read_csv('drugebility_scores.csv')
-        df = df.merge(self.id_xref, on='accession', how='right')
+
+        df = df.merge(self.gene_xref, on='accession', how='right')
         df = df.groupby('ensembl_gene_id', as_index=False).max()
         df['ensemble'].fillna(-1, inplace=True)
 
-        self.b5 = df[df['ensemble'] >= 0.7]
-        self.b6 = df[(df['ensemble'] > 0) & (df['ensemble'] < 0.7)]
+        self.out_df = df.merge(self.out_df, on='ensembl_gene_id', how='right')
+        self.out_df['Bucket_5'] = 0
+        self.out_df['Bucket_6'] = 0
+
+
+
+        self.out_df.loc[(self.out_df['ensemble'] >= 0.7),'Bucket_5'] = 1
+        self.out_df.loc[(self.out_df['ensemble'] > 0) & (self.out_df['ensemble'] < 0.7),'Bucket_6'] = 1
 
     ##############################################################################################################
     #
@@ -424,10 +443,11 @@ class Small_molecule_buckets(object):
 
         df = self.activities[(self.activities['pfi'] <= 7) & (self.activities['alert_id'] <= 2)]
         df = df.groupby('accession', as_index=False).count()
-        df = df.merge(self.id_xref, how='left', on='accession')
-        df['chembl_ligands'] = 1
+        df = df[['accession','canonical_smiles']]
+        self.out_df = df.merge(self.out_df, how='right', on='accession')
+        self.out_df['Bucket_7'] = 0
 
-        self.b7 = df
+        self.out_df.loc[(self.out_df['canonical_smiles'] >= 2), 'Bucket_7'] = 1
 
         # PandasTools.AddMoleculeColumnToFrame(self.activities,'canonical_smiles','molecule')
         # PandasTools.AddMurckoToFrame(self.activities,molCol='molecule',MurckoCol='scaffold',Generic=True)
@@ -445,12 +465,12 @@ class Small_molecule_buckets(object):
         Is this target considered druggable using Finan et al's druggable genome?
         '''
         df = pd.read_csv('druggable_genome.csv')
-        df = df.merge(self.id_xref, on='ensembl_gene_id', how='right')
+        df = df[['ensembl_gene_id','small_mol_druggable']]
         df['small_mol_druggable'].fillna('N', inplace=True)
 
-        df = df.groupby('ensembl_gene_id', as_index=False).max()
-
-        self.b8 = df[df['small_mol_druggable'] == 'Y']
+        self.out_df = df.merge(self.out_df, how='right', on='ensembl_gene_id')
+        self.out_df['Bucket_8'] = 0
+        self.out_df.loc[(self.out_df['small_mol_druggable'] == 'Y'), 'Bucket_8'] = 1
 
     ##############################################################################################################
     #
@@ -513,6 +533,23 @@ class Small_molecule_buckets(object):
 
         return df
 
+    def _summarise_buckets(self):
+
+        self.out_df['Bucket_sum'] = self.out_df['Bucket_1'] + self.out_df['Bucket_2']+ self.out_df[
+            'Bucket_3']+ self.out_df['Bucket_4'] + self.out_df['Bucket_5'] + self.out_df['Bucket_6'] + self.out_df[
+            'Bucket_7'] + self.out_df['Bucket_8']
+
+        self.out_df['Top_bucket'] = 10
+        self.out_df.loc[(self.out_df['Bucket_8'] == 1), 'Top_bucket'] = 8
+        self.out_df.loc[(self.out_df['Bucket_7'] == 1), 'Top_bucket'] = 7
+        self.out_df.loc[(self.out_df['Bucket_6'] == 1), 'Top_bucket'] = 6
+        self.out_df.loc[(self.out_df['Bucket_5'] == 1), 'Top_bucket'] = 5
+        self.out_df.loc[(self.out_df['Bucket_4'] == 1), 'Top_bucket'] = 4
+        self.out_df.loc[(self.out_df['Bucket_3'] == 1), 'Top_bucket'] = 3
+        self.out_df.loc[(self.out_df['Bucket_2'] == 1), 'Top_bucket'] = 2
+        self.out_df.loc[(self.out_df['Bucket_1'] == 1), 'Top_bucket'] = 1
+
+
     def assign_buckets(self):
         '''
         Assigns the supplied list of gene IDs into their corresponding tractability buckets.
@@ -524,9 +561,10 @@ class Small_molecule_buckets(object):
         self._assign_bucket_5_and_6()
         self._assign_bucket_7()
         self._assign_bucket_8()
-        self._assign_bucket_9()
+        #self._assign_bucket_9()
+        self._summarise_buckets()
 
-        return self._regroup_buckets()
+        return self.out_df
 
 
 class Antibody_buckets(object):
