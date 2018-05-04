@@ -604,17 +604,6 @@ class Antibody_buckets(object):
         # All chembl data loaded into here
         self.all_chembl_targets = None
 
-        # Functions will fill buckets
-        self.b1 = None
-        self.b2 = None
-        self.b3 = None
-        self.b4 = None
-        self.b5 = None
-        self.b6 = None
-        self.b7 = None
-        self.b8 = None
-        self.b9 = None
-
         # Unique list of PDB codes:
         self.pdb_list = []
 
@@ -707,7 +696,7 @@ class Antibody_buckets(object):
 
     ##############################################################################################################
     #
-    # Functions relating to bucket 4
+    # Functions relating to buckets 4 to 
     #
     #
     ##############################################################################################################
