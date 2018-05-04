@@ -46,7 +46,7 @@ chembl_clinical_targets = """
 
 pchembl_q = '''
         select distinct td.chembl_id as target_chembl_id, 
-            td.tid, 
+            td.tid,
             cs.accession, 
             pf.protein_class_desc, 
             md.molregno, 

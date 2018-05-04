@@ -109,17 +109,6 @@ class Small_molecule_buckets(object):
         # All chembl data loaded into here
         self.all_chembl_targets = None
 
-        # Functions will fill buckets
-        self.b1 = None
-        self.b2 = None
-        self.b3 = None
-        self.b4 = None
-        self.b5 = None
-        self.b6 = None
-        self.b7 = None
-        self.b8 = None
-        self.b9 = None
-
         # Unique list of PDB codes:
         self.pdb_list = []
 
@@ -421,6 +410,7 @@ class Small_molecule_buckets(object):
 
         alerts = pd.read_sql_query(q, self.engine)
         alerts = alerts.groupby('canonical_smiles', as_index=False).count()
+
         return alerts
 
     def _calc_pfi(self, s):
@@ -436,16 +426,27 @@ class Small_molecule_buckets(object):
         self._search_chembl()
         self.activities['pfi'] = self.activities.apply(self._calc_pfi, axis=1)
 
+
         alerts = self._structural_alerts()
 
         self.activities = self.activities.merge(alerts, how='left', on='canonical_smiles')
         self.activities['alert_id'].fillna(0, inplace=True)
 
+
         df = self.activities[(self.activities['pfi'] <= 7) & (self.activities['alert_id'] <= 2)]
-        df = df.groupby('accession', as_index=False).count()
-        df = df[['accession','canonical_smiles']]
-        self.out_df = df.merge(self.out_df, how='right', on='accession')
+
+        f = {x: 'first' for x in df.columns}
+        f['canonical_smiles'] = 'count'
+        print(df)
+        df2 = df.groupby('accession').agg(f).reset_index(drop=True)
+        #df2['target_chembl_id'] = df.groupby('accession', as_index=False)['target_chembl_id'].first()
+        df2 = df2[['accession','canonical_smiles','target_chembl_id']]
+        self.out_df = df2.merge(self.out_df, how='right', on='accession')
         self.out_df['Bucket_7'] = 0
+        self.out_df['target_chembl_id_y'] = self.out_df['target_chembl_id_y'].fillna(self.out_df['target_chembl_id_x'])
+        self.out_df.rename(columns={'target_chembl_query_y': 'target_chembl_query'}, inplace=True)
+
+
 
         self.out_df.loc[(self.out_df['canonical_smiles'] >= 2), 'Bucket_7'] = 1
 
@@ -579,7 +580,7 @@ class Antibody_buckets(object):
     #
     ##############################################################################################################
 
-    def __init__(self, Pipeline_setup, database_url):
+    def __init__(self, Pipeline_setup, database_url, sm_output = None):
 
         # list of ensembl IDs for targets to be considered
         self.gene_list = Pipeline_setup.gene_list
@@ -587,6 +588,14 @@ class Antibody_buckets(object):
         # Cross referencing from Pipeline_setup, prevents repetition for antibody pipeline
 
         self.id_xref = Pipeline_setup.id_xref
+
+        # If antibody results are to be combined with small molecule results, append antibody columns to sm results
+        # Otherwise, use the id_xref dataframe
+
+        if sm_output is not None:
+            self.out_df = sm_output
+        else:
+            self.out_df = self.id_xref
 
         # Load lists for PDB ligand filters (i.e. to remove sugars, solvents etc)
 
