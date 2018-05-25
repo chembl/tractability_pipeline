@@ -1,1 +1,0 @@
-from rdkit.Chem import PandasTools
