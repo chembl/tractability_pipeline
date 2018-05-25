@@ -1,4 +1,4 @@
-from pipeline.buckets import *
+from ot_tractability_pipeline.buckets import *
 import pandas as pd
 
 # Get a unique list of Gene IDs from OT

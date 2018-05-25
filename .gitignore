@@ -1,3 +1,6 @@
 *out*.csv
 index.csv
 all_targets.csv
+venv
+.DS_Store
+.env

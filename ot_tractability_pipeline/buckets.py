@@ -8,8 +8,8 @@ import mygene
 import pandas as pd
 from sqlalchemy import create_engine
 
-from pipeline.sm_queries import *
-from pipeline.ab_queries import *
+from ot_tractability_pipeline.sm_queries import *
+from ot_tractability_pipeline.ab_queries import *
 
 PY3 = sys.version > '3'
 if PY3:
@@ -82,7 +82,7 @@ class Small_molecule_buckets(object):
         # list of ensembl IDs for targets to be considered
         self.gene_list = Pipeline_setup.gene_list
 
-        # Cross referencing from Pipeline_setup, prevents repetition for antibody pipeline
+        # Cross referencing from Pipeline_setup, prevents repetition for antibody ot_tractability_pipeline
 
         self.id_xref = Pipeline_setup.id_xref
 
@@ -532,7 +532,7 @@ class Antibody_buckets(object):
         # list of ensembl IDs for targets to be considered
         self.gene_list = Pipeline_setup.gene_list
 
-        # Cross referencing from Pipeline_setup, prevents repetition for antibody pipeline
+        # Cross referencing from Pipeline_setup, prevents repetition for antibody ot_tractability_pipeline
 
         self.id_xref = Pipeline_setup.id_xref
 
