@@ -3,6 +3,8 @@ import sys
 import time
 import zipfile
 import io
+import pkg_resources
+import os
 
 import mygene
 import pandas as pd
@@ -16,6 +18,8 @@ if PY3:
     import urllib.request as urllib2
 else:
     import urllib2
+
+DATA_PATH = pkg_resources.resource_filename('ot_tractability_pipeline', 'data/')
 
 
 class Pipeline_setup(object):
@@ -357,7 +361,7 @@ class Small_molecule_buckets(object):
         '''
         Does the target have a DrugEBIlity ensemble score >=0.7 (bucket 5) or  0<score<0.7 (bucket 6)
         '''
-        df = pd.read_csv('drugebility_scores.csv')
+        df = pd.read_csv(os.path.join(DATA_PATH,'drugebility_scores.csv'))
 
         df = df.merge(self.gene_xref, on='accession', how='right')
         df = df.groupby('ensembl_gene_id', as_index=False).max()
@@ -458,7 +462,7 @@ class Small_molecule_buckets(object):
         '''
         Is this target considered druggable using Finan et al's druggable genome?
         '''
-        df = pd.read_csv('druggable_genome.csv')
+        df = pd.read_csv(os.path.join(DATA_PATH,'druggable_genome.csv'))
         df = df[['ensembl_gene_id', 'small_mol_druggable']]
         df['small_mol_druggable'].fillna('N', inplace=True)
 
@@ -541,7 +545,7 @@ class Antibody_buckets(object):
 
         # Load accepted GO locations
         self.accepted_go_locs = {}
-        with open('go_accepted_loc.tsv') as go_loc_file:
+        with open(os.path.join(DATA_PATH,'go_accepted_loc.tsv')) as go_loc_file:
             for line in go_loc_file:
                 line = line.split('\t')
                 self.accepted_go_locs[line[0]] = line[2]

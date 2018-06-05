@@ -3,6 +3,8 @@ import sys
 import time
 import zipfile
 import io
+import pkg_resources
+import os
 
 import mygene
 import pandas as pd
@@ -16,6 +18,8 @@ if PY3:
     import urllib.request as urllib2
 else:
     import urllib2
+
+DATA_PATH = pkg_resources.resource_filename('ot_tractability_pipeline', 'data/')
 
 
 class Pipeline_setup(object):
@@ -77,7 +81,7 @@ class Small_molecule_buckets(object):
     #
     ##############################################################################################################
 
-    def __init__(self, Pipeline_setup, database_url, ligand_filter=list()):
+    def __init__(self, Pipeline_setup, database_url = None, ligand_filter=list()):
 
         # list of ensembl IDs for targets to be considered
         self.gene_list = Pipeline_setup.gene_list
@@ -118,6 +122,12 @@ class Small_molecule_buckets(object):
 
         # Map back to Uniprot accession
         self.pdb_map = {}
+
+        # If dabase url not supplied, get from envronemnt variables
+
+        if database_url is None:
+            database_url = os.getenv('CHEMBL_DB')
+            print(database_url)
 
         # Create ChEMBL DB connection
         self.engine = create_engine(database_url)
@@ -357,7 +367,7 @@ class Small_molecule_buckets(object):
         '''
         Does the target have a DrugEBIlity ensemble score >=0.7 (bucket 5) or  0<score<0.7 (bucket 6)
         '''
-        df = pd.read_csv('drugebility_scores.csv')
+        df = pd.read_csv(os.path.join(DATA_PATH,'drugebility_scores.csv'))
 
         df = df.merge(self.gene_xref, on='accession', how='right')
         df = df.groupby('ensembl_gene_id', as_index=False).max()
@@ -458,7 +468,7 @@ class Small_molecule_buckets(object):
         '''
         Is this target considered druggable using Finan et al's druggable genome?
         '''
-        df = pd.read_csv('druggable_genome.csv')
+        df = pd.read_csv(os.path.join(DATA_PATH,'druggable_genome.csv'))
         df = df[['ensembl_gene_id', 'small_mol_druggable']]
         df['small_mol_druggable'].fillna('N', inplace=True)
 
@@ -495,7 +505,7 @@ class Small_molecule_buckets(object):
                                         'Bucket_7'] + self.out_df['Bucket_8']
 
         self.out_df['Top_bucket'] = 10
-        for x in range(8, 1, -1):
+        for x in range(8,0, -1):
             self.out_df.loc[(self.out_df['Bucket_{}'.format(x)] == 1), 'Top_bucket'] = x
 
     def assign_buckets(self):
@@ -527,7 +537,7 @@ class Antibody_buckets(object):
     #
     ##############################################################################################################
 
-    def __init__(self, Pipeline_setup, database_url, sm_output=None):
+    def __init__(self, Pipeline_setup, database_url= None, sm_output=None):
 
         # list of ensembl IDs for targets to be considered
         self.gene_list = Pipeline_setup.gene_list
@@ -541,7 +551,7 @@ class Antibody_buckets(object):
 
         # Load accepted GO locations
         self.accepted_go_locs = {}
-        with open('go_accepted_loc.tsv') as go_loc_file:
+        with open(os.path.join(DATA_PATH,'go_accepted_loc.tsv')) as go_loc_file:
             for line in go_loc_file:
                 line = line.split('\t')
                 self.accepted_go_locs[line[0]] = line[2]
@@ -561,6 +571,10 @@ class Antibody_buckets(object):
 
         # Map back to Uniprot accession
         self.pdb_map = {}
+
+        if database_url is None:
+            database_url = os.getenv('CHEMBL_DB')
+            print(database_url)
 
         # Create ChEMBL DB connection
         self.engine = create_engine(database_url)

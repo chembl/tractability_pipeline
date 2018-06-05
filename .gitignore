@@ -4,3 +4,4 @@ all_targets.csv
 venv
 .DS_Store
 .env
+gene_list.csv

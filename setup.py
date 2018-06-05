@@ -14,6 +14,7 @@ setuptools.setup(
     url="https://github.com/Cradoux/tractability_pipeline",
     packages=setuptools.find_packages(),
     install_requires=[i.strip() for i in open("requirements.txt").readlines()],
+    include_package_data=True,
     classifiers=(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
