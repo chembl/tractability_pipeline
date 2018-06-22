@@ -2,18 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="64729dbe-694d-4308-a1fc-e79df8af6744" name="Default" comment="">
+      <change afterPath="$PROJECT_DIR$/ot_tractability_pipeline/data/cofactors.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ot_tractability_pipeline/data/organic_solvents.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ot_tractability_pipeline/data/sugars.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/lib/ot_tractability_pipeline/buckets.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/lib/ot_tractability_pipeline/buckets.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/ot_tractability_pipeline-0.0.1-py2-none-any.whl" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/ot_tractability_pipeline-0.0.1.tar.gz" beforeDir="false" afterPath="$PROJECT_DIR$/dist/ot_tractability_pipeline-0.0.1.tar.gz" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/drugebility_scores.csv" beforeDir="false" afterPath="$PROJECT_DIR$/ot_tractability_pipeline/data/drugebility_scores.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/druggable_genome.csv" beforeDir="false" afterPath="$PROJECT_DIR$/ot_tractability_pipeline/data/druggable_genome.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go_accepted_loc.tsv" beforeDir="false" afterPath="$PROJECT_DIR$/ot_tractability_pipeline/data/go_accepted_loc.tsv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ot_tractability_pipeline.egg-info/SOURCES.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ot_tractability_pipeline.egg-info/SOURCES.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ot_tractability_pipeline/buckets.py" beforeDir="false" afterPath="$PROJECT_DIR$/ot_tractability_pipeline/buckets.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/run_pipeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_pipeline.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -24,7 +18,7 @@
   </component>
   <component name="CoverageDataManager">
     <SUITE FILE_PATH="coverage/ot_tractability_pipeline$test.coverage" NAME="test Coverage Results" MODIFIED="1527158029225" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/ot_tractability_pipeline$run_pipeline.coverage" NAME="run_pipeline Coverage Results" MODIFIED="1528185726594" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/ot_tractability_pipeline$run_pipeline.coverage" NAME="run_pipeline Coverage Results" MODIFIED="1529675730982" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="FavoritesManager">
     <favorites_list name="ot_tractability_pipeline" />
@@ -34,11 +28,29 @@
       <file leaf-file-name="buckets.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/buckets.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="127">
-              <caret line="539" column="57" selection-start-line="539" selection-start-column="57" selection-end-line="539" selection-end-column="57" />
+            <state relative-caret-position="527">
+              <caret line="534" column="89" selection-start-line="534" selection-start-column="89" selection-end-line="534" selection-end-column="89" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="sm_queries.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/sm_queries.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="4836">
+              <caret line="330" column="8" selection-start-line="330" selection-start-column="8" selection-end-line="330" selection-end-column="8" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="setup.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/setup.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="330">
+              <caret line="22" column="1" selection-start-line="22" selection-start-column="1" selection-end-line="22" selection-end-column="1" />
             </state>
           </provider>
         </entry>
@@ -48,15 +60,6 @@
           <provider selected="true" editor-type-id="text-editor">
             <state>
               <caret column="32" selection-start-column="32" selection-end-column="32" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="setup.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/setup.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="315">
-              <caret line="21" column="6" selection-start-line="21" selection-start-column="6" selection-end-line="21" selection-end-column="6" />
             </state>
           </provider>
         </entry>
@@ -82,8 +85,8 @@
       <file leaf-file-name=".gitignore" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/.gitignore">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="75">
-              <caret line="5" column="4" selection-start-line="5" selection-start-column="4" selection-end-line="5" selection-end-column="4" />
+            <state relative-caret-position="105">
+              <caret line="7" selection-start-line="7" selection-end-line="7" />
             </state>
           </provider>
         </entry>
@@ -91,29 +94,11 @@
       <file leaf-file-name="run_pipeline.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/run_pipeline.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="132">
-              <caret line="29" column="86" selection-start-line="29" selection-start-column="86" selection-end-line="29" selection-end-column="86" />
+            <state relative-caret-position="207">
+              <caret line="15" column="5" selection-start-line="15" selection-start-column="5" selection-end-line="15" selection-end-column="5" />
               <folding>
                 <element signature="e#0#46#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ab_queries.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/ab_queries.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="45">
-              <caret line="3" column="36" selection-start-line="3" selection-start-column="36" selection-end-line="3" selection-end-column="36" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="sm_queries.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/sm_queries.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="4950">
-              <caret line="330" column="8" selection-start-line="330" selection-start-column="8" selection-end-line="330" selection-end-column="8" />
             </state>
           </provider>
         </entry>
@@ -130,9 +115,10 @@
   <component name="FindInProjectRecents">
     <findStrings>
       <find>chembldb22</find>
-      <find>print</find>
       <find>tsv</find>
       <find>csv</find>
+      <find>concat</find>
+      <find>print</find>
     </findStrings>
     <replaceStrings>
       <replace>CHEMBL_23</replace>
@@ -168,10 +154,10 @@
         <option value="$PROJECT_DIR$/test.py" />
         <option value="$PROJECT_DIR$/pipeline/buckets.py" />
         <option value="$PROJECT_DIR$/ot_tractability_pipeline/__init__.py" />
-        <option value="$PROJECT_DIR$/.gitignore" />
         <option value="$PROJECT_DIR$/setup.py" />
         <option value="$PROJECT_DIR$/MANIFEST.in" />
         <option value="$PROJECT_DIR$/requirements.txt" />
+        <option value="$PROJECT_DIR$/.gitignore" />
         <option value="$PROJECT_DIR$/ot_tractability_pipeline/buckets.py" />
         <option value="$PROJECT_DIR$/run_pipeline.py" />
       </list>
@@ -186,11 +172,11 @@
   <component name="NodePackageJsonFileManager">
     <packageJsonPaths />
   </component>
-  <component name="ProjectFrameBounds">
-    <option name="x" value="-1802" />
-    <option name="y" value="-67" />
-    <option name="width" value="1440" />
-    <option name="height" value="821" />
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="x" value="-1512" />
+    <option name="y" value="-124" />
+    <option name="width" value="1170" />
+    <option name="height" value="929" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
@@ -198,7 +184,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -215,6 +200,7 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -223,14 +209,15 @@
     <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
   </component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/ot_tractability_pipeline/data" />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/pipeline" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/ot_tractability_pipeline" />
       <recent name="$PROJECT_DIR$/data" />
       <recent name="$PROJECT_DIR$" />
-    </key>
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$" />
-      <recent name="$PROJECT_DIR$/pipeline" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -382,16 +369,17 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-1802" y="-67" width="1440" height="821" extended-state="0" />
+    <frame x="-1920" y="-174" width="1920" height="1121" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Event Log" order="7" sideWeight="0.50416666" side_tool="true" weight="0.24061598" />
       <window_info anchor="bottom" id="Database Changes" order="8" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="7" />
       <window_info anchor="bottom" id="Python Console" order="7" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.49583334" visible="true" weight="0.33467203" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.49583334" visible="true" weight="0.23877746" />
       <window_info anchor="bottom" id="Terminal" order="7" />
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.24375" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.1828125" />
       <window_info anchor="bottom" id="Docker" order="8" show_stripe_button="false" />
       <window_info anchor="right" id="Database" order="3" />
       <window_info anchor="right" id="SciView" order="3" />
@@ -416,22 +404,30 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/ab_queries.py">
+    <entry file="file://$PROJECT_DIR$/MANIFEST.in">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="45">
-          <caret line="3" column="36" selection-start-line="3" selection-start-column="36" selection-end-line="3" selection-end-column="36" />
+        <state relative-caret-position="15">
+          <caret line="1" column="43" selection-start-line="1" selection-start-column="43" selection-end-line="1" selection-end-column="43" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/sm_queries.py">
+    <entry file="file://$PROJECT_DIR$/.gitignore">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4950">
-          <caret line="330" column="8" selection-start-line="330" selection-start-column="8" selection-end-line="330" selection-end-column="8" />
+        <state relative-caret-position="105">
+          <caret line="7" selection-start-line="7" selection-end-line="7" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test.py" />
-    <entry file="file://$PROJECT_DIR$/targets_by_disease.py" />
+    <entry file="file://$PROJECT_DIR$/run_pipeline.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="405">
+          <caret line="29" column="86" selection-start-line="29" selection-start-column="86" selection-end-line="29" selection-end-column="86" />
+          <folding>
+            <element signature="e#0#46#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/accession_by_evidence.py" />
     <entry file="file://$PROJECT_DIR$/process_out.py" />
     <entry file="file://$PROJECT_DIR$/uniprot_test.py" />
@@ -532,17 +528,31 @@
     <entry file="file://$PROJECT_DIR$/xml_to_df.py" />
     <entry file="file://$PROJECT_DIR$/accession_by_evidence.py" />
     <entry file="file://$PROJECT_DIR$/targets_by_disease.py" />
-    <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
+    <entry file="file://$PROJECT_DIR$/all_targets.csv">
+      <provider selected="true" editor-type-id="LargeFileEditor">
         <state>
-          <caret column="32" selection-start-column="32" selection-end-column="32" />
+          <caret lean-forward="true" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/ab_queries.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="36">
+          <caret line="3" column="36" selection-start-line="3" selection-start-column="36" selection-end-line="3" selection-end-column="36" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/requirements.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="180">
+          <caret line="12" column="9" selection-start-line="12" selection-start-column="9" selection-end-line="12" selection-end-column="9" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/.gitignore">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="75">
-          <caret line="5" column="4" selection-start-line="5" selection-start-column="4" selection-end-line="5" selection-end-column="4" />
+        <state relative-caret-position="105">
+          <caret line="7" selection-start-line="7" selection-end-line="7" />
         </state>
       </provider>
     </entry>
@@ -555,43 +565,36 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/setup.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="315">
-          <caret line="21" column="6" selection-start-line="21" selection-start-column="6" selection-end-line="21" selection-end-column="6" />
+        <state relative-caret-position="330">
+          <caret line="22" column="1" selection-start-line="22" selection-start-column="1" selection-end-line="22" selection-end-column="1" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/requirements.txt">
+    <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
-          <caret line="12" column="9" selection-start-line="12" selection-start-column="9" selection-end-line="12" selection-end-column="9" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/all_targets.csv">
-      <provider selected="true" editor-type-id="LargeFileEditor">
         <state>
-          <caret lean-forward="true" />
+          <caret column="32" selection-start-column="32" selection-end-column="32" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/ab_queries.py">
+    <entry file="file://$USER_HOME$/anaconda/envs/tractability/lib/python3.5/site-packages/pandas/core/groupby/groupby.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="45">
-          <caret line="3" column="36" selection-start-line="3" selection-start-column="36" selection-end-line="3" selection-end-column="36" />
+        <state relative-caret-position="275">
+          <caret line="4657" selection-start-line="4657" selection-end-line="4657" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/sm_queries.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4950">
+        <state relative-caret-position="4836">
           <caret line="330" column="8" selection-start-line="330" selection-start-column="8" selection-end-line="330" selection-end-column="8" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/buckets.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="127">
-          <caret line="539" column="57" selection-start-line="539" selection-start-column="57" selection-end-line="539" selection-end-column="57" />
+        <state relative-caret-position="527">
+          <caret line="534" column="89" selection-start-line="534" selection-start-column="89" selection-end-line="534" selection-end-column="89" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
           </folding>
@@ -600,8 +603,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/run_pipeline.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="132">
-          <caret line="29" column="86" selection-start-line="29" selection-start-column="86" selection-end-line="29" selection-end-column="86" />
+        <state relative-caret-position="207">
+          <caret line="15" column="5" selection-start-line="15" selection-start-column="5" selection-end-line="15" selection-end-column="5" />
           <folding>
             <element signature="e#0#46#0" expanded="true" />
           </folding>

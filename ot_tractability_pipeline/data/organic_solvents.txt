@@ -1,0 +1,47 @@
+ACN	acetone
+ACY	acetic acid
+CCN	acetonitrile
+BNZ	benzene
+1BO	1-butanol
+SBT	2-butanol
+BUQ	4-hydroxy-2-butanone
+TBU	tertiary-butyl alcohol
+8CL	chlorobenzene
+MCH	trichloromethane
+CHX	cyclohexane
+DCE	1,2-dichloroethane
+PEG	diethylene glycol
+ETZ	diethyl ether
+M2M	1-methoxy-2-(2-methoxyethoxy)ethane
+DXE	1,2-dimethoxyethane
+DMF	dimethylformamide
+DMS	dimethyl sulfoxide
+DIO	1,4-diethylene dioxide
+DOX	dioxane
+EOH	ethanol
+EEE	ethyl acetate
+EGL	ethylene glycol
+EDO	1,2-ethanediol
+GOL	glycerol
+HP6	heptane
+HEX	hexane
+MOH	methanol
+LNK	pentane
+POL	1-propanol
+IPA	isopropyl alcohol
+IOH	isopropyl alcohol
+OPY	pyridine
+FU1	tetrahydrofuran
+MBN	toluene
+HOH	water
+DOD	deuterated water
+OXE	ortho-xylene
+PYJ	para-xylene
+MBN	toluene
+EDN	ethylenediamine
+ANL	aniline
+YAN	1,2-dichlorobenzene
+NBZ	nitrobenzene
+CNV	propanenitrile
+2BM	dibromomethane
+PGO	S-1,2-PROPANEDIOL

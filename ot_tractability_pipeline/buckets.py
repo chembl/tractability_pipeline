@@ -59,7 +59,7 @@ class Pipeline_setup(object):
         # Use MyGene to return list of Uniprot accession numbers for each ensemble gene ID
 
         results = mg.getgenes(list(self.gene_list), scopes='ensembl',
-                              as_dataframe=True, fields='uniprot.Swiss-Prot,entrezgene,pdb,pfam,go,interpro',
+                              as_dataframe=True, fields='uniprot.Swiss-Prot,entrezgene,pdb,go',
                               species='human', returnall=True)
 
         self.id_xref = results
@@ -92,27 +92,24 @@ class Small_molecule_buckets(object):
 
         # Load lists for PDB ligand filters (i.e. to remove sugars, solvents etc)
 
+        self.ligand_filter = ligand_filter
+
         if len(ligand_filter) == 0:
             # Default ligand filter
             # Load unwanted PDB ligands list from text files
 
-            with urllib2.urlopen(
-                    'https://gist.githubusercontent.com/Cradoux/8d16493e19de89f7134d0a800e2dd06c/raw/5c697de2ebdbce6694df875e5e8338dbfed68171/organic_solvents.txt') as solvent_file:
-                solvents = [a.decode("utf-8").split('\t')[0] for a in solvent_file]
+            with open(os.path.join(DATA_PATH,'organic_solvents.txt')) as solvent_file:
+                solvents = [a.split('\t')[0] for a in solvent_file]
 
-            with urllib2.urlopen(
-                    'https://gist.githubusercontent.com/Cradoux/adb2e77918828685d3b60418dc3ad7ca/raw/2a6a0b39bb1b1701536fa8abbc6b728615b2aa6a/sugars.txt') as sugar_file:
-                sugars = [a.decode("utf-8").split('\t')[0] for a in sugar_file]
+            with open(os.path.join(DATA_PATH, 'sugars.txt')) as sugar_file:
+                sugars = [a.split('\t')[0] for a in sugar_file]
 
-            with urllib2.urlopen(
-                    'https://gist.githubusercontent.com/Cradoux/3bd1fbf834eea6d9ee2239fcb139cade/raw/d7fd1fd2a655abcc8e917a8e4a03a97ed1aa2b2f/cofactors.txt') as cofactor_file:
-                cofactors = [a.decode("utf-8").split('\t')[0] for a in cofactor_file]
+            with open(os.path.join(DATA_PATH,'cofactors.txt')) as cofactor_file:
+                cofactors = [a.split('\t')[0] for a in cofactor_file]
 
             ligand_filter = solvents + sugars + cofactors
 
             self.ligand_filter = ligand_filter
-
-        # Dataframes for buckets
 
         # All chembl data loaded into here
         self.all_chembl_targets = None
@@ -123,18 +120,29 @@ class Small_molecule_buckets(object):
         # Map back to Uniprot accession
         self.pdb_map = {}
 
-        # If dabase url not supplied, get from envronemnt variables
+        # If dabase url not supplied, get from envronemnt variable
 
         if database_url is None:
             database_url = os.getenv('CHEMBL_DB')
             print(database_url)
 
         # Create ChEMBL DB connection
-        self.engine = create_engine(database_url)
+
+        try:
+            self.engine = create_engine(database_url)
+        except AttributeError:
+            print('''
+Please supply a valid database URL to your local ChEMBL installation using one of the following methods
+
+1) Supply the URL to this class within your script
+2) Create an environment variable named 'CHEMBL_DB' with containing your database URL
+3) Use the command line flag '--db' if using the supplied run script  '''
+                  )
+            raise
 
         # URL for PDBe web services
 
-        self.SERVER_URL = "https://www.ebi.ac.uk/pdbe/api"
+        self.PDB_SERVER_URL = "https://www.ebi.ac.uk/pdbe/api"
 
     ##############################################################################################################
     #
@@ -180,7 +188,7 @@ class Small_molecule_buckets(object):
             df_list.append(pd.read_sql_query(q, self.engine))
 
         # Merge will set those with unknown binding site as NAN
-        binding_site_info = pd.concat(df_list)
+        binding_site_info = pd.concat(df_list, sort=False)
         pc = pc.merge(binding_site_info, how='left', on='tid')
         defined = pc[pc['site_id'].notnull()]
         undefined = pc[~pc['site_id'].notnull()]
@@ -200,11 +208,11 @@ class Small_molecule_buckets(object):
             and cs.accession in {}'''.format(tuple(chunk))
             df_list2.append(pd.read_sql_query(q2, self.engine))
 
-        binding_subunit = pd.concat(df_list2)
+        binding_subunit = pd.concat(df_list2, sort=False)
         temp_pc = pc.merge(binding_subunit, on='accession')
         binding_subunits = temp_pc[temp_pc['component_id'].notnull()]
 
-        self.all_chembl_targets = pd.concat([binding_subunits, undefined, not_pc])
+        self.all_chembl_targets = pd.concat([binding_subunits, undefined, not_pc], sort=False)
 
     def _assign_buckets_1_to_3(self):
         '''
@@ -218,7 +226,7 @@ class Small_molecule_buckets(object):
         '''
 
         def other_func(x):
-            return tuple(x)
+            return tuple(set(x))
 
         self._search_chembl_clinical()
         self._process_protein_complexes()
@@ -235,7 +243,7 @@ class Small_molecule_buckets(object):
         f['pref_name'] = other_func
         f['moa_chembl'] = other_func
 
-        self.out_df = self.out_df.groupby(['ensembl_gene_id']).agg(f)
+        self.out_df = self.out_df.groupby(['ensembl_gene_id']).agg(f).reset_index(drop=True)
 
         self.out_df['Bucket_1'] = 0
         self.out_df['Bucket_2'] = 0
@@ -268,7 +276,7 @@ class Small_molecule_buckets(object):
         return url_file.read().decode()
 
     def _post_request(self, url, data, pretty=False):
-        full_url = "%s/%s/?pretty=%s" % (self.SERVER_URL, url, str(pretty).lower())
+        full_url = "%s/%s/?pretty=%s" % (self.PDB_SERVER_URL, url, str(pretty).lower())
 
         if isinstance(data, (list, tuple)):
             data = ",".join(data)
@@ -373,7 +381,8 @@ class Small_molecule_buckets(object):
         df = df.groupby('ensembl_gene_id', as_index=False).max()
         df['ensemble'].fillna(-1, inplace=True)
 
-        self.out_df = df.merge(self.out_df, on='ensembl_gene_id', how='right')
+        print(self.out_df)
+        self.out_df = df.merge(self.out_df, how='right', on='ensembl_gene_id')
         self.out_df['Bucket_5'] = 0
         self.out_df['Bucket_6'] = 0
 
@@ -395,7 +404,7 @@ class Small_molecule_buckets(object):
                                      pd.read_sql_query(D_Tm_q, self.engine),
                                      pd.read_sql_query(residual_act_q, self.engine),
                                      pd.read_sql_query(Imax_q, self.engine),
-                                     pd.read_sql_query(Emax_q, self.engine)])
+                                     pd.read_sql_query(Emax_q, self.engine)], sort=False)
 
         # For faster testing
         # self.activities = pd.read_sql_query(pchembl_q, self.engine)
@@ -442,7 +451,7 @@ class Small_molecule_buckets(object):
 
         f = {x: 'first' for x in df.columns}
         f['canonical_smiles'] = 'count'
-        print(df)
+
         df2 = df.groupby('accession').agg(f).reset_index(drop=True)
         # df2['target_chembl_id'] = df.groupby('accession', as_index=False)['target_chembl_id'].first()
         df2 = df2[['accession', 'canonical_smiles', 'target_chembl_id']]
@@ -521,6 +530,11 @@ class Small_molecule_buckets(object):
         self._assign_bucket_8()
         # self._assign_bucket_9()
         self._summarise_buckets()
+        self.out_df = self.out_df[['ensembl_gene_id', 'accession',
+                                   'Bucket_1','Bucket_2','Bucket_3','Bucket_4','Bucket_5','Bucket_6','Bucket_7',
+                                   'Bucket_8','Bucket_1','Bucket_sum', 'Top_bucket', 'pdb'
+                                   'ensemble', 'canonical_smiles', 'small_mol_druggable']]
+
 
         return self.out_df
 
@@ -615,11 +629,11 @@ class Antibody_buckets(object):
             and sc.site_id in {}'''.format(tuple(chunk))
             df_list2.append(pd.read_sql_query(q2, self.engine))
 
-        binding_subunit = pd.concat(df_list2)
+        binding_subunit = pd.concat(df_list2, sort=False)
         temp_pc = pc.merge(binding_subunit, on='accession')
         binding_subunits = temp_pc[temp_pc['component_id'].notnull()]
 
-        self.all_chembl_targets = pd.concat([binding_subunits, undefined, not_pc])
+        self.all_chembl_targets = pd.concat([binding_subunits, undefined, not_pc], sort=False)
 
     def _assign_buckets_1_to_3(self):
         '''
@@ -650,17 +664,22 @@ class Antibody_buckets(object):
         def other_func(x):
             return tuple(x)
 
+        f = {x: other_func for x in self.all_chembl_targets if x !='accession'}
+        f['max_phase_for_ind'] = 'max'
+        f['max_phase'] = 'max'
+
+
+        self.all_chembl_targets = self.all_chembl_targets.groupby('accession', as_index=False).agg(f)
+
         self.out_df = self.all_chembl_targets.merge(self.out_df, how='outer', on='accession', suffixes=('_sm', '_ab'))
 
         self.out_df.drop(['component_id', 'drug_name', 'ref_id', 'ref_type', 'tid',
                           'ref_url'], axis=1, inplace=True)
 
-        f = {x: 'first' for x in self.out_df.columns}
+        f = {x: 'first' for x in self.out_df.columns if  x !='ensembl_gene_id'}
         f['max_phase_for_ind'] = 'max'
-        f['pref_name'] = other_func
-        f['moa_chembl_ab'] = other_func
 
-        self.out_df = self.out_df.groupby(['ensembl_gene_id']).agg(f)
+        self.out_df = self.out_df.groupby(['ensembl_gene_id'], as_index=False).agg(f)
 
         self.out_df['Bucket_1_ab'] = 0
         self.out_df['Bucket_2_ab'] = 0
@@ -671,6 +690,8 @@ class Antibody_buckets(object):
             (self.out_df['max_phase_for_ind'] < 4) & (self.out_df['max_phase_for_ind'] >= 2), 'Bucket_2_ab'] = 1
         self.out_df.loc[
             (self.out_df['max_phase_for_ind'] < 2) & (self.out_df['max_phase_for_ind'] > 0), 'Bucket_3_ab'] = 1
+
+        self.out_df.to_csv('test.csv')
 
     ##############################################################################################################
     #
@@ -710,12 +731,41 @@ class Antibody_buckets(object):
             return [[]]
 
     def _set_b4_flag(self, s):
-        return len([a for x in s['Subcellular location [CC]'] for a in x if
-                    ('Cell membrane' in a or 'Secreted' in a) and ('ECO:0000269' in a or 'ECO:0000305' in a)])
+        # if len([a for x in s['Subcellular location [CC]'] for a in x if
+        #             ('Cell membrane' in a or 'Secreted' in a) and ('ECO:0000269' in a or 'ECO:0000305' in a)]) >0:
+        #     return 1
+        # return 0
+
+        accepted_uniprot_high_conf = [a for x in s['Subcellular location [CC]'] for a in x if
+             ('Cell membrane' in a or 'Secreted' in a) and ('ECO:0000269' in a or 'ECO:0000305' in a)]
+
+        all_uniprot_high_conf = [a for x in s['Subcellular location [CC]'] for a in x if
+                                      ('ECO:0000269' in a or 'ECO:0000305' in a)]
+
+        if len(accepted_uniprot_high_conf) > 0:
+            b4_flag = 1
+        else:
+            b4_flag = 0
+
+        return b4_flag, all_uniprot_high_conf
 
     def _set_b6_flag(self, s):
-        return len([a for x in s['Subcellular location [CC]'] for a in x if
-                    ('Cell membrane' in a or 'Secreted' in a) and not ('ECO:0000269' in a or 'ECO:0000305' in a)])
+
+        accepted_uniprot_med_conf = [a for x in s['Subcellular location [CC]'] for a in x if
+                                      ('Cell membrane' in a or 'Secreted' in a) and not (
+                                                  'ECO:0000269' in a or 'ECO:0000305' in a)]
+
+        all_uniprot_med_conf = [a for x in s['Subcellular location [CC]'] for a in x if not
+                                 ('ECO:0000269' in a or 'ECO:0000305' in a)]
+
+        if len(accepted_uniprot_med_conf) > 0:
+            b6_flag = 1
+        else:
+            b6_flag = 0
+
+        return b6_flag, all_uniprot_med_conf
+
+
 
     def _assign_bucket_4_and_6(self):
         '''
@@ -731,8 +781,8 @@ class Antibody_buckets(object):
         location = [x.split('\t') for x in location.split('\n')]
         df = pd.DataFrame(location[1:], columns=location[0])
         df['Subcellular location [CC]'] = df['Subcellular location [CC]'].apply(self.split_loc)
-        df['Bucket_4_ab'] = df.apply(self._set_b4_flag, axis=1)
-        df['Bucket_6_ab'] = df.apply(self._set_b6_flag, axis=1)
+        df['Bucket_4_ab'],df['Uniprot_high_conf_loc'] = zip(*df.apply(self._set_b4_flag, axis=1))
+        df['Bucket_6_ab'],df['Uniprot_med_conf_loc'] = zip(*df.apply(self._set_b6_flag, axis=1))
         df.rename(columns={'Entry': 'accession'}, inplace=True)
 
         self.out_df = self.out_df.merge(df, how='left', on='accession')
@@ -760,6 +810,8 @@ class Antibody_buckets(object):
 
         high_conf_loc = []
         med_conf_loc = []
+        accepted_high_conf_loc = []
+        accepted_med_conf_loc = []
 
         if isinstance(cc, dict):
             cc = [cc]
@@ -776,18 +828,23 @@ class Antibody_buckets(object):
             except KeyError:
                 confidence = None
 
+            if confidence == 'High':
+                high_conf_loc.append(go_loc)
+            elif confidence == 'Medium':
+                med_conf_loc.append(go_loc)
+
             if go_id in self.accepted_go_locs.keys():
                 if confidence == 'High':
-                    high_conf_loc.append(go_loc)
+                    accepted_high_conf_loc.append(go_loc)
                 elif confidence == 'Medium':
-                    med_conf_loc.append(go_loc)
+                    accepted_med_conf_loc.append(go_loc)
 
         b5_flag = 0
         b8_flag = 0
 
-        if len(high_conf_loc) > 0:
+        if len(accepted_high_conf_loc) > 0:
             b5_flag = 1
-        elif len(med_conf_loc) > 0:
+        elif len(accepted_med_conf_loc) > 0:
             b8_flag = 1
 
         return b5_flag, high_conf_loc, b8_flag, med_conf_loc
@@ -796,8 +853,8 @@ class Antibody_buckets(object):
         '''
         GO CC
         '''
-        self.out_df['Bucket_5_ab'], self.out_df['high_conf_loc'], self.out_df['Bucket_8_ab'], self.out_df[
-            'med_conf_loc'] = zip(*self.out_df.apply(self._set_b5_b8_flag, axis=1))
+        self.out_df['Bucket_5_ab'], self.out_df['GO_high_conf_loc'], self.out_df['Bucket_8_ab'], self.out_df[
+            'GO_med_conf_loc'] = zip(*self.out_df.apply(self._set_b5_b8_flag, axis=1))
 
     ##############################################################################################################
     #
@@ -813,7 +870,7 @@ class Antibody_buckets(object):
 
         '''
         self.out_df['Bucket_7_ab'] = 0
-        print(self.out_df['Transmembrane'])
+
         self.out_df.loc[(self.out_df['Transmembrane'].str.contains('TRANSMEM', na=False)), 'Bucket_7_ab'] = 1
         self.out_df.loc[(self.out_df['Signal peptide'].str.contains('SIGNAL', na=False)), 'Bucket_7_ab'] = 1
 
@@ -848,10 +905,10 @@ class Antibody_buckets(object):
         reliable = df[(df['Reliability'] == 'Supported') | (df['Reliability'] == 'Validated')]
 
         reliable.drop(columns=["Approved", "Supported", "Uncertain",
-                               "Cell cycle dependency", "GO id"])
+                               "Cell cycle dependency", "GO id"], axis=1, inplace=True)
 
         self.out_df= self.out_df.merge(reliable, on='ensembl_gene_id', how='left')
-        print(self.out_df)
+
         self.out_df['Bucket_9_ab'] = 0
         self.out_df.loc[(self.out_df['main_location'].str.contains("Plasma membrane", na=False)), 'Bucket_9_ab'] = 1
 
@@ -874,6 +931,8 @@ class Antibody_buckets(object):
         for x in range(9, 0, -1):
             self.out_df.loc[(self.out_df['Bucket_{}_ab'.format(x)] == 1), 'Top_bucket_ab'] = x
 
+        self.out_df.set_index('ensembl_gene_id')
+
     def assign_buckets(self):
         '''
         Assigns the supplied list of gene IDs into their corresponding tractability buckets.
@@ -887,5 +946,27 @@ class Antibody_buckets(object):
         self._assign_bucket_9()
 
         self._summarise_buckets()
+
+       #try:
+        self.out_df = self.out_df[['ensembl_gene_id', 'accession',
+                                   'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4',
+                                   'Bucket_5', 'Bucket_6', 'Bucket_7',
+                                   'Bucket_8', 'Bucket_sum', 'Top_bucket',
+                                   'ensemble', 'canonical_smiles', 'small_mol_druggable',
+                                   'Bucket_1_ab', 'Bucket_2_ab', 'Bucket_3_ab', 'Bucket_4_ab',
+                                   'Bucket_5_ab', 'Bucket_6_ab', 'Bucket_7_ab',
+                                   'Bucket_8_ab',  'Bucket_sum_ab', 'Top_bucket_ab',
+                                   'Uniprot_high_conf_loc', 'GO_high_conf_loc','Uniprot_med_conf_loc',
+                                   'GO_med_conf_loc', 'Transmembrane','Signal peptide', 'main_location'
+                                   ]]
+        self.out_df.rename(columns={'canonical_smiles': 'High Quality ChEMBL compounds',
+                                    'small_mol_druggable': 'Small Molecule Druggable Genome Member',
+                                    'main_location':'HPA main location'}, inplace=True)
+
+        # except KeyError:
+        #     self.out_df= self.out_df = self.out_df[['ensembl_gene_id', 'accession', 'target_chembl_id'
+        #                            'Bucket_1','Bucket_2','Bucket_3','Bucket_4','Bucket_5','Bucket_6','Bucket_7',
+        #                            'Bucket_8','Bucket_10', 'Bucket_1','Bucket_sum', 'Top_bucket',
+        #                            'ensemble', 'canonical_smiles', 'small_mol_druggable']]
 
         return self.out_df
