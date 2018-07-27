@@ -738,41 +738,50 @@ class Antibody_buckets(object):
         try:
             loc_list = [a.split('. ') for a in s.split(';')]
             loc_evidence_li = []
-            for l in loc_list:
-                for l2 in l:
-                    if l2 == '':
-                        continue
-
-                    l2 = l2.strip()
-                    if l2.startswith('Note'):
-                        break
-
-                    l2 = l2.replace('SUBCELLULAR LOCATION: ', '')
-                    #evidence = l2[l2.find("{") + 1:l2.find("}")]
-                    evidence = re.findall(r'\{([^]]*)\}', l2)
-                    print(evidence)
-                    if len(evidence) == 0:
-                        evidence = ['Unknown evidence type']
-
-
-                    locations = l2.split('{')[0]
-
-                    if not locations.startswith('Note') and not locations =='':
-                        loc_evidence_li.append((evidence, locations))
-            return loc_evidence_li
 
         except AttributeError:
             return [('na', 'na')]
+
+        for l in loc_list:
+            for l2 in l:
+                if l2 == '':
+                    continue
+
+                l2 = l2.strip()
+                if l2.startswith('Note'):
+                    break
+
+                l2 = l2.replace('SUBCELLULAR LOCATION: ', '')
+                #evidence = l2[l2.find("{") + 1:l2.find("}")]
+                evidence = re.findall(r'\{([^]]*)\}', l2)
+                evidence = [e for x in evidence for e in x.split(',')]
+                print(evidence)
+                if len(evidence) == 0:
+                    evidence = ['Unknown evidence type']
+
+
+                locations = l2.split('{')[0]
+
+                if locations !='':
+                    loc_evidence_li.append((evidence, locations))
+        return loc_evidence_li
+
+    def _check_evidence(self,evidence_li):
+
+        high_conf_evidence = [e for e in evidence_li if ('ECO:0000269' in e or 'ECO:0000305' in e)]
+
+        if len(high_conf_evidence) > 0:
+            return True
+        return False
 
     def _set_b4_flag(self, s):
 
 
         accepted_uniprot_high_conf = [a[1] for a in s['Subcellular location [CC]'] if
-                                      ('Cell membrane' in a[1] or 'Secreted' in a[1]) and (
-                                                  'ECO:0000269' in a[0] or 'ECO:0000305' in a[0])]
+                                      ('Cell membrane' in a[1] or 'Secreted' in a[1]) and (self._check_evidence(a[0]))]
 
-        all_uniprot_high_conf = {a[1]:a[0] for a in s['Subcellular location [CC]'] if
-                                 ('ECO:0000269' in a[0] or 'ECO:0000305' in a[0])}
+        all_uniprot_high_conf = [(a[1],a[0]) for a in s['Subcellular location [CC]']if self._check_evidence(a[0])]
+
 
         if len(accepted_uniprot_high_conf) > 0:
             b4_flag = 1
@@ -784,11 +793,9 @@ class Antibody_buckets(object):
     def _set_b6_flag(self, s):
 
         accepted_uniprot_med_conf = [a[1] for a in s['Subcellular location [CC]'] if
-                                     ('Cell membrane' in a[1] or 'Secreted' in a[1]) and not (
-                                             'ECO:0000269' in a[0] or 'ECO:0000305' in a[0])]
+                                     ('Cell membrane' in a[1] or 'Secreted' in a[1]) and not self._check_evidence(a[0])]
 
-        all_uniprot_med_conf = {a[1]:a[0] for a in s['Subcellular location [CC]'] if not
-        ('ECO:0000269' in a[0] or 'ECO:0000305' in a[0])}
+        all_uniprot_med_conf = [(a[1],a[0]) for a in s['Subcellular location [CC]'] if not self._check_evidence(a[0])]
 
         if len(accepted_uniprot_med_conf) > 0:
             b6_flag = 1
