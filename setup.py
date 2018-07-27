@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ot_tractability_pipeline",
-    version="0.0.1",
+    version="1.0",
     author="Chris Radoux",
     author_email="cradoux@ebi.ac.uk",
     description="Python script for assigning genes to tractability buckets",

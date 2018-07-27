@@ -1,18 +1,18 @@
+import io
 import json
+import os
+import re
 import sys
 import time
 import zipfile
-import io
-import pkg_resources
-import os
-import re
 
 import mygene
 import pandas as pd
+import pkg_resources
 from sqlalchemy import create_engine
 
-from ot_tractability_pipeline.sm_queries import *
 from ot_tractability_pipeline.ab_queries import *
+from ot_tractability_pipeline.sm_queries import *
 
 PY3 = sys.version > '3'
 if PY3:
@@ -752,21 +752,20 @@ class Antibody_buckets(object):
                     break
 
                 l2 = l2.replace('SUBCELLULAR LOCATION: ', '')
-                #evidence = l2[l2.find("{") + 1:l2.find("}")]
+                # evidence = l2[l2.find("{") + 1:l2.find("}")]
                 evidence = re.findall(r'\{([^]]*)\}', l2)
                 evidence = [e for x in evidence for e in x.split(',')]
                 print(evidence)
                 if len(evidence) == 0:
                     evidence = ['Unknown evidence type']
 
-
                 locations = l2.split('{')[0]
 
-                if locations !='':
+                if locations != '':
                     loc_evidence_li.append((evidence, locations))
         return loc_evidence_li
 
-    def _check_evidence(self,evidence_li):
+    def _check_evidence(self, evidence_li):
 
         high_conf_evidence = [e for e in evidence_li if ('ECO:0000269' in e or 'ECO:0000305' in e)]
 
@@ -776,12 +775,10 @@ class Antibody_buckets(object):
 
     def _set_b4_flag(self, s):
 
-
         accepted_uniprot_high_conf = [a[1] for a in s['Subcellular location [CC]'] if
                                       ('Cell membrane' in a[1] or 'Secreted' in a[1]) and (self._check_evidence(a[0]))]
 
-        all_uniprot_high_conf = [(a[1],a[0]) for a in s['Subcellular location [CC]']if self._check_evidence(a[0])]
-
+        all_uniprot_high_conf = [(a[1], a[0]) for a in s['Subcellular location [CC]'] if self._check_evidence(a[0])]
 
         if len(accepted_uniprot_high_conf) > 0:
             b4_flag = 1
@@ -795,7 +792,7 @@ class Antibody_buckets(object):
         accepted_uniprot_med_conf = [a[1] for a in s['Subcellular location [CC]'] if
                                      ('Cell membrane' in a[1] or 'Secreted' in a[1]) and not self._check_evidence(a[0])]
 
-        all_uniprot_med_conf = [(a[1],a[0]) for a in s['Subcellular location [CC]'] if not self._check_evidence(a[0])]
+        all_uniprot_med_conf = [(a[1], a[0]) for a in s['Subcellular location [CC]'] if not self._check_evidence(a[0])]
 
         if len(accepted_uniprot_med_conf) > 0:
             b6_flag = 1
@@ -815,7 +812,7 @@ class Antibody_buckets(object):
         location = self._post_request(url, data)
         location = [x.split('\t') for x in location.split('\n')]
         df = pd.DataFrame(location[1:], columns=location[0])
-        df['uniprot_loc_test']= df['Subcellular location [CC]']
+        df['uniprot_loc_test'] = df['Subcellular location [CC]']
 
         df['Subcellular location [CC]'] = df['Subcellular location [CC]'].apply(self.split_loc)
         df['Bucket_4_ab'], df['Uniprot_high_conf_loc'] = zip(*df.apply(self._set_b4_flag, axis=1))
@@ -992,19 +989,29 @@ class Antibody_buckets(object):
         self.out_df = self.out_df[['accession',
                                    'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4',
                                    'Bucket_5', 'Bucket_6', 'Bucket_7',
-                                   'Bucket_8', 'Bucket_sum', 'Top_bucket','Category',
+                                   'Bucket_8', 'Bucket_sum', 'Top_bucket', 'Category',
                                    'ensemble', 'canonical_smiles', 'small_mol_druggable',
                                    'Bucket_1_ab', 'Bucket_2_ab', 'Bucket_3_ab', 'Bucket_4_ab',
                                    'Bucket_5_ab', 'Bucket_6_ab', 'Bucket_7_ab',
                                    'Bucket_8_ab', 'Bucket_9_ab', 'Bucket_sum_ab', 'Top_bucket_ab',
-                                   'uniprot_loc_test','Uniprot_high_conf_loc', 'GO_high_conf_loc', 'Uniprot_med_conf_loc',
+                                   'uniprot_loc_test', 'Uniprot_high_conf_loc', 'GO_high_conf_loc',
+                                   'Uniprot_med_conf_loc',
                                    'GO_med_conf_loc', 'Transmembrane', 'Signal peptide', 'main_location'
                                    ]]
         self.out_df.rename(columns={'canonical_smiles': 'High Quality ChEMBL compounds',
                                     'small_mol_druggable': 'Small Molecule Druggable Genome Member',
                                     'main_location': 'HPA main location'}, inplace=True)
-        self.out_df.sort_values(['Top_bucket','Bucket_sum'], ascending=[True, False], inplace=True)
+        self.out_df.sort_values(['Top_bucket', 'Bucket_sum'], ascending=[True, False], inplace=True)
 
+        self.out_df['Category_ab'] = 'Unknown'
 
+        self.out_df.loc[(self.out_df['Top_bucket_ab'] <= 3), 'Category_ab'] = 'Clinical Precedence'
+        self.out_df.loc[(self.out_df['Top_bucket_ab'] == 4) | (self.out_df['Top_bucket_ab'] == 5),
+                        'Category_ab'] = 'Predicted Tractable - High confidence'
+
+        self.out_df.loc[
+            (self.out_df['Top_bucket_ab'] == 6) | (self.out_df['Top_bucket_ab'] == 7) | (
+                        self.out_df['Top_bucket_ab'] == 8) | (self.out_df['Top_bucket_ab'] == 9),
+            'Category_ab'] = 'Predicted Tractable - Medium to low confidence'
 
         return self.out_df
