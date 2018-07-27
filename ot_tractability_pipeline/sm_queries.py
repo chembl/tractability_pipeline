@@ -4,8 +4,8 @@ chembl_clinical_small_mol = """
         select distinct mh.parent_molregno, 
             md.molregno, 
             md.pref_name
-        from CHEMBL_23.molecule_dictionary md,
-            CHEMBL_23.molecule_hierarchy mh
+        from CHEMBL_24.molecule_dictionary md,
+            CHEMBL_24.molecule_hierarchy mh
         where md.molregno = mh.molregno
         and md.therapeutic_flag = 1
         and md.molecule_type = 'Small molecule'
@@ -24,14 +24,14 @@ chembl_clinical_targets = """
             mr.ref_type,
             mr.ref_id,
             mr.ref_url
-        from CHEMBL_23.molecule_dictionary md,
-            CHEMBL_23.molecule_hierarchy mh,
-            CHEMBL_23.drug_mechanism dm,
-            CHEMBL_23.target_dictionary td,
-            CHEMBL_23.target_components tc,
-            CHEMBL_23.component_sequences cs,
-            CHEMBL_23.mechanism_refs mr,
-            CHEMBL_23_APP.drug_targets_mv dt
+        from CHEMBL_24.molecule_dictionary md,
+            CHEMBL_24.molecule_hierarchy mh,
+            CHEMBL_24.drug_mechanism dm,
+            CHEMBL_24.target_dictionary td,
+            CHEMBL_24.target_components tc,
+            CHEMBL_24.component_sequences cs,
+            CHEMBL_24.mechanism_refs mr,
+            CHEMBL_APP.drug_targets_mv dt
         where md.molregno = dm.molregno
         and md.molregno = mh.molregno
         and dm.tid = td.tid
@@ -56,17 +56,17 @@ pchembl_q = '''
             cp.aromatic_rings,
             cp.qed_weighted,
             d.year
-        from CHEMBL_23.target_dictionary td,
-            CHEMBL_23.target_components tc,
-            CHEMBL_23.component_sequences cs,
-            CHEMBL_23.component_class cc,
-            CHEMBL_23.protein_classification pf,
-            CHEMBL_23.assays ass,
-            CHEMBL_23.activities act,
-            CHEMBL_23.molecule_dictionary md,
-            CHEMBL_23.compound_structures cst,
-            CHEMBL_23.compound_properties cp,
-            CHEMBL_23.docs d
+        from CHEMBL_24.target_dictionary td,
+            CHEMBL_24.target_components tc,
+            CHEMBL_24.component_sequences cs,
+            CHEMBL_24.component_class cc,
+            CHEMBL_24.protein_classification pf,
+            CHEMBL_24.assays ass,
+            CHEMBL_24.activities act,
+            CHEMBL_24.molecule_dictionary md,
+            CHEMBL_24.compound_structures cst,
+            CHEMBL_24.compound_properties cp,
+            CHEMBL_24.docs d
         where td.tid = tc.tid
         and tc.component_id = cs.component_id
         and cs.component_id = cc.component_id
@@ -99,17 +99,17 @@ select distinct td.chembl_id as target_chembl_id,
     cp.aromatic_rings,
     cp.qed_weighted,
     d.year
-from CHEMBL_23.target_dictionary td,
-    CHEMBL_23.target_components tc,
-    CHEMBL_23.component_sequences cs,
-    CHEMBL_23.component_class cc,
-    CHEMBL_23.protein_classification pf,
-    CHEMBL_23.assays ass,
-    CHEMBL_23.activities act,
-    CHEMBL_23.molecule_dictionary md,
-    CHEMBL_23.compound_structures cst,
-    CHEMBL_23.compound_properties cp,
-    CHEMBL_23.docs d
+from CHEMBL_24.target_dictionary td,
+    CHEMBL_24.target_components tc,
+    CHEMBL_24.component_sequences cs,
+    CHEMBL_24.component_class cc,
+    CHEMBL_24.protein_classification pf,
+    CHEMBL_24.assays ass,
+    CHEMBL_24.activities act,
+    CHEMBL_24.molecule_dictionary md,
+    CHEMBL_24.compound_structures cst,
+    CHEMBL_24.compound_properties cp,
+    CHEMBL_24.docs d
 where td.tid = tc.tid
 and tc.component_id = cs.component_id
 and cs.component_id = cc.component_id
@@ -142,17 +142,17 @@ select distinct td.chembl_id as target_chembl_id,
     cp.aromatic_rings,
     cp.qed_weighted,
     d.year
-from CHEMBL_23.target_dictionary td,
-    CHEMBL_23.target_components tc,
-    CHEMBL_23.component_sequences cs,
-    CHEMBL_23.component_class cc,
-    CHEMBL_23.protein_classification pf,
-    CHEMBL_23.assays ass,
-    CHEMBL_23.activities act,
-    CHEMBL_23.molecule_dictionary md,
-    CHEMBL_23.compound_structures cst,
-    CHEMBL_23.compound_properties cp,
-    CHEMBL_23.docs d
+from CHEMBL_24.target_dictionary td,
+    CHEMBL_24.target_components tc,
+    CHEMBL_24.component_sequences cs,
+    CHEMBL_24.component_class cc,
+    CHEMBL_24.protein_classification pf,
+    CHEMBL_24.assays ass,
+    CHEMBL_24.activities act,
+    CHEMBL_24.molecule_dictionary md,
+    CHEMBL_24.compound_structures cst,
+    CHEMBL_24.compound_properties cp,
+    CHEMBL_24.docs d
 where td.tid = tc.tid
 and tc.component_id = cs.component_id
 and cs.component_id = cc.component_id
@@ -186,17 +186,17 @@ select distinct td.chembl_id as target_chembl_id,
     cp.aromatic_rings,
     cp.qed_weighted,
     d.year
-from CHEMBL_23.target_dictionary td,
-    CHEMBL_23.target_components tc,
-    CHEMBL_23.component_sequences cs,
-    CHEMBL_23.component_class cc,
-    CHEMBL_23.protein_classification pf,
-    CHEMBL_23.assays ass,
-    CHEMBL_23.activities act,
-    CHEMBL_23.molecule_dictionary md,
-    CHEMBL_23.compound_structures cst,
-    CHEMBL_23.compound_properties cp,
-    CHEMBL_23.docs d
+from CHEMBL_24.target_dictionary td,
+    CHEMBL_24.target_components tc,
+    CHEMBL_24.component_sequences cs,
+    CHEMBL_24.component_class cc,
+    CHEMBL_24.protein_classification pf,
+    CHEMBL_24.assays ass,
+    CHEMBL_24.activities act,
+    CHEMBL_24.molecule_dictionary md,
+    CHEMBL_24.compound_structures cst,
+    CHEMBL_24.compound_properties cp,
+    CHEMBL_24.docs d
 where td.tid = tc.tid
 and tc.component_id = cs.component_id
 and cs.component_id = cc.component_id
@@ -230,17 +230,17 @@ select distinct td.chembl_id as target_chembl_id,
     cp.aromatic_rings,
     cp.qed_weighted,
     d.year
-from CHEMBL_23.target_dictionary td,
-    CHEMBL_23.target_components tc,
-    CHEMBL_23.component_sequences cs,
-    CHEMBL_23.component_class cc,
-    CHEMBL_23.protein_classification pf,
-    CHEMBL_23.assays ass,
-    CHEMBL_23.activities act,
-    CHEMBL_23.molecule_dictionary md,
-    CHEMBL_23.compound_structures cst,
-    CHEMBL_23.compound_properties cp,
-    CHEMBL_23.docs d
+from CHEMBL_24.target_dictionary td,
+    CHEMBL_24.target_components tc,
+    CHEMBL_24.component_sequences cs,
+    CHEMBL_24.component_class cc,
+    CHEMBL_24.protein_classification pf,
+    CHEMBL_24.assays ass,
+    CHEMBL_24.activities act,
+    CHEMBL_24.molecule_dictionary md,
+    CHEMBL_24.compound_structures cst,
+    CHEMBL_24.compound_properties cp,
+    CHEMBL_24.docs d
 where td.tid = tc.tid
 and tc.component_id = cs.component_id
 and cs.component_id = cc.component_id
@@ -273,17 +273,17 @@ select distinct td.chembl_id as target_chembl_id,
     cp.aromatic_rings,
     cp.qed_weighted,
     d.year
-from CHEMBL_23.target_dictionary td,
-    CHEMBL_23.target_components tc,
-    CHEMBL_23.component_sequences cs,
-    CHEMBL_23.component_class cc,
-    CHEMBL_23.protein_classification pf,
-    CHEMBL_23.assays ass,
-    CHEMBL_23.activities act,
-    CHEMBL_23.molecule_dictionary md,
-    CHEMBL_23.compound_structures cst,
-    CHEMBL_23.compound_properties cp,
-    CHEMBL_23.docs d
+from CHEMBL_24.target_dictionary td,
+    CHEMBL_24.target_components tc,
+    CHEMBL_24.component_sequences cs,
+    CHEMBL_24.component_class cc,
+    CHEMBL_24.protein_classification pf,
+    CHEMBL_24.assays ass,
+    CHEMBL_24.activities act,
+    CHEMBL_24.molecule_dictionary md,
+    CHEMBL_24.compound_structures cst,
+    CHEMBL_24.compound_properties cp,
+    CHEMBL_24.docs d
 where td.tid = tc.tid
 and tc.component_id = cs.component_id
 and cs.component_id = cc.component_id
@@ -317,17 +317,17 @@ select distinct td.chembl_id as target_chembl_id,
     cp.aromatic_rings,
     cp.qed_weighted,
     d.year
-from CHEMBL_23.target_dictionary td,
-    CHEMBL_23.target_components tc,
-    CHEMBL_23.component_sequences cs,
-    CHEMBL_23.component_class cc,
-    CHEMBL_23.protein_classification pf,
-    CHEMBL_23.assays ass,
-    CHEMBL_23.activities act,
-    CHEMBL_23.molecule_dictionary md,
-    CHEMBL_23.compound_structures cst,
-    CHEMBL_23.compound_properties cp,
-    CHEMBL_23.docs d
+from CHEMBL_24.target_dictionary td,
+    CHEMBL_24.target_components tc,
+    CHEMBL_24.component_sequences cs,
+    CHEMBL_24.component_class cc,
+    CHEMBL_24.protein_classification pf,
+    CHEMBL_24.assays ass,
+    CHEMBL_24.activities act,
+    CHEMBL_24.molecule_dictionary md,
+    CHEMBL_24.compound_structures cst,
+    CHEMBL_24.compound_properties cp,
+    CHEMBL_24.docs d
 where td.tid = tc.tid
 and tc.component_id = cs.component_id
 and cs.component_id = cc.component_id

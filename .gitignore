@@ -5,3 +5,4 @@ venv
 .DS_Store
 .env
 gene_list.csv
+activities.csv

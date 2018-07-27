@@ -1,8 +1,8 @@
 chembl_clinical_ab = '''
 select distinct mh.parent_molregno, di.efo_id, di.efo_term, di.max_phase_for_ind
-from CHEMBL_23.molecule_dictionary md,
-	CHEMBL_23.molecule_hierarchy mh,
-	CHEMBL_23.drug_indication di
+from CHEMBL_24.molecule_dictionary md,
+	CHEMBL_24.molecule_hierarchy mh,
+	CHEMBL_24.drug_indication di
 where md.molregno = mh.molregno
 and md.molregno = di.molregno
 and md.therapeutic_flag = 1
@@ -22,13 +22,13 @@ select distinct mh.parent_molregno,
 	mr.ref_id,
 	mr.ref_url,
 	dm.site_id
-from CHEMBL_23.molecule_dictionary md,
-	CHEMBL_23.molecule_hierarchy mh,
-	CHEMBL_23.drug_mechanism dm,
-	CHEMBL_23.target_dictionary td,
-	CHEMBL_23.target_components tc,
-	CHEMBL_23.component_sequences cs,
-	CHEMBL_23.mechanism_refs mr
+from CHEMBL_24.molecule_dictionary md,
+	CHEMBL_24.molecule_hierarchy mh,
+	CHEMBL_24.drug_mechanism dm,
+	CHEMBL_24.target_dictionary td,
+	CHEMBL_24.target_components tc,
+	CHEMBL_24.component_sequences cs,
+	CHEMBL_24.mechanism_refs mr
 where md.molregno = dm.molregno
 and md.molregno = mh.molregno
 and dm.tid = td.tid

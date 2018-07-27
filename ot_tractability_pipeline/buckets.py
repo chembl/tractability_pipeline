@@ -5,6 +5,7 @@ import zipfile
 import io
 import pkg_resources
 import os
+import re
 
 import mygene
 import pandas as pd
@@ -81,7 +82,7 @@ class Small_molecule_buckets(object):
     #
     ##############################################################################################################
 
-    def __init__(self, Pipeline_setup, database_url = None, ligand_filter=list()):
+    def __init__(self, Pipeline_setup, database_url=None, ligand_filter=list()):
 
         # list of ensembl IDs for targets to be considered
         self.gene_list = Pipeline_setup.gene_list
@@ -98,13 +99,13 @@ class Small_molecule_buckets(object):
             # Default ligand filter
             # Load unwanted PDB ligands list from text files
 
-            with open(os.path.join(DATA_PATH,'organic_solvents.txt')) as solvent_file:
+            with open(os.path.join(DATA_PATH, 'organic_solvents.txt')) as solvent_file:
                 solvents = [a.split('\t')[0] for a in solvent_file]
 
             with open(os.path.join(DATA_PATH, 'sugars.txt')) as sugar_file:
                 sugars = [a.split('\t')[0] for a in sugar_file]
 
-            with open(os.path.join(DATA_PATH,'cofactors.txt')) as cofactor_file:
+            with open(os.path.join(DATA_PATH, 'cofactors.txt')) as cofactor_file:
                 cofactors = [a.split('\t')[0] for a in cofactor_file]
 
             ligand_filter = solvents + sugars + cofactors
@@ -120,7 +121,7 @@ class Small_molecule_buckets(object):
         # Map back to Uniprot accession
         self.pdb_map = {}
 
-        # If dabase url not supplied, get from envronemnt variable
+        # If database url not supplied, get from envronemnt variable
 
         if database_url is None:
             database_url = os.getenv('CHEMBL_DB')
@@ -181,7 +182,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         for chunk in chunks:
             q = '''
             select distinct bs.site_id, td.tid 
-            from CHEMBL_23.target_dictionary td, CHEMBL_23.binding_sites bs
+            from CHEMBL_24.target_dictionary td, CHEMBL_24.binding_sites bs
             where td.tid = bs.tid and td.tid IN {}
             
             '''.format(tuple(chunk))
@@ -203,7 +204,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         for chunk in chunks:
             q2 = '''
             select distinct sc.component_id, cs.accession
-            from CHEMBL_23.component_sequences cs, CHEMBL_23.site_components sc
+            from CHEMBL_24.component_sequences cs, CHEMBL_24.site_components sc
             where cs.component_id = sc.component_id
             and cs.accession in {}'''.format(tuple(chunk))
             df_list2.append(pd.read_sql_query(q2, self.engine))
@@ -375,7 +376,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         '''
         Does the target have a DrugEBIlity ensemble score >=0.7 (bucket 5) or  0<score<0.7 (bucket 6)
         '''
-        df = pd.read_csv(os.path.join(DATA_PATH,'drugebility_scores.csv'))
+        df = pd.read_csv(os.path.join(DATA_PATH, 'drugebility_scores.csv'))
 
         df = df.merge(self.gene_xref, on='accession', how='right')
         df = df.groupby('ensembl_gene_id', as_index=False).max()
@@ -412,11 +413,11 @@ Please supply a valid database URL to your local ChEMBL installation using one o
     def _structural_alerts(self):
         q = '''
         select distinct cs.canonical_smiles, csa.alert_id /*, sa.alert_name, sas.set_name */
-        from CHEMBL_23.compound_structures cs,
-            CHEMBL_23.compound_structural_alerts csa,
-            CHEMBL_23.structural_alerts sa,
-            CHEMBL_23.molecule_dictionary md,
-            CHEMBL_23.structural_alert_sets sas
+        from CHEMBL_24.compound_structures cs,
+            CHEMBL_24.compound_structural_alerts csa,
+            CHEMBL_24.structural_alerts sa,
+            CHEMBL_24.molecule_dictionary md,
+            CHEMBL_24.structural_alert_sets sas
         where cs.molregno = md.molregno
         and cs.molregno = csa.molregno
         and csa.alert_id = sa.alert_id
@@ -446,14 +447,13 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
         self.activities = self.activities.merge(alerts, how='left', on='canonical_smiles')
         self.activities['alert_id'].fillna(0, inplace=True)
-
+        self.activities.to_csv('activities.csv')
         df = self.activities[(self.activities['pfi'] <= 7) & (self.activities['alert_id'] <= 2)]
 
         f = {x: 'first' for x in df.columns}
         f['canonical_smiles'] = 'count'
 
         df2 = df.groupby('accession').agg(f).reset_index(drop=True)
-        # df2['target_chembl_id'] = df.groupby('accession', as_index=False)['target_chembl_id'].first()
         df2 = df2[['accession', 'canonical_smiles', 'target_chembl_id']]
         self.out_df = df2.merge(self.out_df, how='right', on='accession')
         self.out_df['Bucket_7'] = 0
@@ -477,7 +477,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         '''
         Is this target considered druggable using Finan et al's druggable genome?
         '''
-        df = pd.read_csv(os.path.join(DATA_PATH,'druggable_genome.csv'))
+        df = pd.read_csv(os.path.join(DATA_PATH, 'druggable_genome.csv'))
         df = df[['ensembl_gene_id', 'small_mol_druggable']]
         df['small_mol_druggable'].fillna('N', inplace=True)
 
@@ -514,7 +514,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
                                         'Bucket_7'] + self.out_df['Bucket_8']
 
         self.out_df['Top_bucket'] = 10
-        for x in range(8,0, -1):
+        for x in range(8, 0, -1):
             self.out_df.loc[(self.out_df['Bucket_{}'.format(x)] == 1), 'Top_bucket'] = x
 
     def assign_buckets(self):
@@ -530,11 +530,21 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         self._assign_bucket_8()
         # self._assign_bucket_9()
         self._summarise_buckets()
+
         self.out_df = self.out_df[['ensembl_gene_id', 'accession',
-                                   'Bucket_1','Bucket_2','Bucket_3','Bucket_4','Bucket_5','Bucket_6','Bucket_7',
-                                   'Bucket_8','Bucket_1','Bucket_sum', 'Top_bucket', 'pdb'
+                                   'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4', 'Bucket_5', 'Bucket_6', 'Bucket_7',
+                                   'Bucket_8', 'Bucket_1', 'Bucket_sum', 'Top_bucket',
                                    'ensemble', 'canonical_smiles', 'small_mol_druggable']]
 
+        self.out_df['Category'] = 'Unknown'
+
+        self.out_df.loc[(self.out_df['Top_bucket'] <= 3), 'Category'] = 'Clinical Precedence'
+        self.out_df.loc[(self.out_df['Top_bucket'] == 4) | (self.out_df['Top_bucket'] == 7),
+                        'Category'] = 'Discovery Precedence'
+
+        self.out_df.loc[
+            (self.out_df['Top_bucket'] == 5) | (self.out_df['Top_bucket'] == 6) | (self.out_df['Top_bucket'] == 8),
+            'Category'] = 'Predicted Tractable'
 
         return self.out_df
 
@@ -551,7 +561,7 @@ class Antibody_buckets(object):
     #
     ##############################################################################################################
 
-    def __init__(self, Pipeline_setup, database_url= None, sm_output=None):
+    def __init__(self, Pipeline_setup, database_url=None, sm_output=None):
 
         # list of ensembl IDs for targets to be considered
         self.gene_list = Pipeline_setup.gene_list
@@ -565,7 +575,7 @@ class Antibody_buckets(object):
 
         # Load accepted GO locations
         self.accepted_go_locs = {}
-        with open(os.path.join(DATA_PATH,'go_accepted_loc.tsv')) as go_loc_file:
+        with open(os.path.join(DATA_PATH, 'go_accepted_loc.tsv')) as go_loc_file:
             for line in go_loc_file:
                 line = line.split('\t')
                 self.accepted_go_locs[line[0]] = line[2]
@@ -623,8 +633,8 @@ class Antibody_buckets(object):
         for chunk in chunks:
             q2 = '''
             select distinct cs.accession, sc.component_id
-            from CHEMBL_23.component_sequences cs,
-                CHEMBL_23.site_components sc
+            from CHEMBL_24.component_sequences cs,
+                CHEMBL_24.site_components sc
             where cs.component_id = sc.component_id
             and sc.site_id in {}'''.format(tuple(chunk))
             df_list2.append(pd.read_sql_query(q2, self.engine))
@@ -664,10 +674,9 @@ class Antibody_buckets(object):
         def other_func(x):
             return tuple(x)
 
-        f = {x: other_func for x in self.all_chembl_targets if x !='accession'}
+        f = {x: other_func for x in self.all_chembl_targets if x != 'accession'}
         f['max_phase_for_ind'] = 'max'
         f['max_phase'] = 'max'
-
 
         self.all_chembl_targets = self.all_chembl_targets.groupby('accession', as_index=False).agg(f)
 
@@ -676,7 +685,7 @@ class Antibody_buckets(object):
         self.out_df.drop(['component_id', 'drug_name', 'ref_id', 'ref_type', 'tid',
                           'ref_url'], axis=1, inplace=True)
 
-        f = {x: 'first' for x in self.out_df.columns if  x !='ensembl_gene_id'}
+        f = {x: 'first' for x in self.out_df.columns if x != 'ensembl_gene_id'}
         f['max_phase_for_ind'] = 'max'
 
         self.out_df = self.out_df.groupby(['ensembl_gene_id'], as_index=False).agg(f)
@@ -725,22 +734,45 @@ class Antibody_buckets(object):
         return self._make_request(full_url, data.encode())
 
     def split_loc(self, s):
+
         try:
-            return [a.split(';') for a in s.split('.') if a.split(';') != ['']]
+            loc_list = [a.split('. ') for a in s.split(';')]
+            loc_evidence_li = []
+            for l in loc_list:
+                for l2 in l:
+                    if l2 == '':
+                        continue
+
+                    l2 = l2.strip()
+                    if l2.startswith('Note'):
+                        break
+
+                    l2 = l2.replace('SUBCELLULAR LOCATION: ', '')
+                    #evidence = l2[l2.find("{") + 1:l2.find("}")]
+                    evidence = re.findall(r'\{([^]]*)\}', l2)
+                    print(evidence)
+                    if len(evidence) == 0:
+                        evidence = ['Unknown evidence type']
+
+
+                    locations = l2.split('{')[0]
+
+                    if not locations.startswith('Note') and not locations =='':
+                        loc_evidence_li.append((evidence, locations))
+            return loc_evidence_li
+
         except AttributeError:
-            return [[]]
+            return [('na', 'na')]
 
     def _set_b4_flag(self, s):
-        # if len([a for x in s['Subcellular location [CC]'] for a in x if
-        #             ('Cell membrane' in a or 'Secreted' in a) and ('ECO:0000269' in a or 'ECO:0000305' in a)]) >0:
-        #     return 1
-        # return 0
 
-        accepted_uniprot_high_conf = [a for x in s['Subcellular location [CC]'] for a in x if
-             ('Cell membrane' in a or 'Secreted' in a) and ('ECO:0000269' in a or 'ECO:0000305' in a)]
 
-        all_uniprot_high_conf = [a for x in s['Subcellular location [CC]'] for a in x if
-                                      ('ECO:0000269' in a or 'ECO:0000305' in a)]
+        accepted_uniprot_high_conf = [a[1] for a in s['Subcellular location [CC]'] if
+                                      ('Cell membrane' in a[1] or 'Secreted' in a[1]) and (
+                                                  'ECO:0000269' in a[0] or 'ECO:0000305' in a[0])]
+
+        all_uniprot_high_conf = {a[1]:a[0] for a in s['Subcellular location [CC]'] if
+                                 ('ECO:0000269' in a[0] or 'ECO:0000305' in a[0])}
 
         if len(accepted_uniprot_high_conf) > 0:
             b4_flag = 1
@@ -751,12 +783,12 @@ class Antibody_buckets(object):
 
     def _set_b6_flag(self, s):
 
-        accepted_uniprot_med_conf = [a for x in s['Subcellular location [CC]'] for a in x if
-                                      ('Cell membrane' in a or 'Secreted' in a) and not (
-                                                  'ECO:0000269' in a or 'ECO:0000305' in a)]
+        accepted_uniprot_med_conf = [a[1] for a in s['Subcellular location [CC]'] if
+                                     ('Cell membrane' in a[1] or 'Secreted' in a[1]) and not (
+                                             'ECO:0000269' in a[0] or 'ECO:0000305' in a[0])]
 
-        all_uniprot_med_conf = [a for x in s['Subcellular location [CC]'] for a in x if not
-                                 ('ECO:0000269' in a or 'ECO:0000305' in a)]
+        all_uniprot_med_conf = {a[1]:a[0] for a in s['Subcellular location [CC]'] if not
+        ('ECO:0000269' in a[0] or 'ECO:0000305' in a[0])}
 
         if len(accepted_uniprot_med_conf) > 0:
             b6_flag = 1
@@ -765,24 +797,22 @@ class Antibody_buckets(object):
 
         return b6_flag, all_uniprot_med_conf
 
-
-
     def _assign_bucket_4_and_6(self):
         '''
         Uniprot (loc): Targets in "Cell membrane" or "Secreted", high confidence
         '''
 
-        base = 'http://www.uniprot.org'
-        # url = "uniprot/?format=xml&query=*&fil=reviewed%3ayes+AND+organism%3a%22Homo+sapiens+(Human)+%5b9606%5d%22&offset=50&columns=id%2centry+name%2ccomment(SUBCELLULAR+LOCATION)#"
         url = "uniprot/?format=tab&query=*&fil=reviewed%3ayes+AND+organism%3a%22Homo+sapiens+(Human)+%5b9606%5d%22&columns=id,comment(SUBCELLULAR+LOCATION),comment(DOMAIN),feature(DOMAIN+EXTENT),feature(INTRAMEMBRANE),feature(TOPOLOGICAL+DOMAIN),feature(TRANSMEMBRANE),feature(SIGNAL)"
         data = ['P42336', 'P60484']
 
         location = self._post_request(url, data)
         location = [x.split('\t') for x in location.split('\n')]
         df = pd.DataFrame(location[1:], columns=location[0])
+        df['uniprot_loc_test']= df['Subcellular location [CC]']
+
         df['Subcellular location [CC]'] = df['Subcellular location [CC]'].apply(self.split_loc)
-        df['Bucket_4_ab'],df['Uniprot_high_conf_loc'] = zip(*df.apply(self._set_b4_flag, axis=1))
-        df['Bucket_6_ab'],df['Uniprot_med_conf_loc'] = zip(*df.apply(self._set_b6_flag, axis=1))
+        df['Bucket_4_ab'], df['Uniprot_high_conf_loc'] = zip(*df.apply(self._set_b4_flag, axis=1))
+        df['Bucket_6_ab'], df['Uniprot_med_conf_loc'] = zip(*df.apply(self._set_b6_flag, axis=1))
         df.rename(columns={'Entry': 'accession'}, inplace=True)
 
         self.out_df = self.out_df.merge(df, how='left', on='accession')
@@ -829,9 +859,9 @@ class Antibody_buckets(object):
                 confidence = None
 
             if confidence == 'High':
-                high_conf_loc.append(go_loc)
+                high_conf_loc.append((go_loc, evidence))
             elif confidence == 'Medium':
-                med_conf_loc.append(go_loc)
+                med_conf_loc.append((go_loc, evidence))
 
             if go_id in self.accepted_go_locs.keys():
                 if confidence == 'High':
@@ -907,7 +937,7 @@ class Antibody_buckets(object):
         reliable.drop(columns=["Approved", "Supported", "Uncertain",
                                "Cell cycle dependency", "GO id"], axis=1, inplace=True)
 
-        self.out_df= self.out_df.merge(reliable, on='ensembl_gene_id', how='left')
+        self.out_df = self.out_df.merge(reliable, on='ensembl_gene_id', how='left')
 
         self.out_df['Bucket_9_ab'] = 0
         self.out_df.loc[(self.out_df['main_location'].str.contains("Plasma membrane", na=False)), 'Bucket_9_ab'] = 1
@@ -925,7 +955,8 @@ class Antibody_buckets(object):
 
         self.out_df['Bucket_sum_ab'] = self.out_df['Bucket_1_ab'] + self.out_df['Bucket_2_ab'] + self.out_df[
             'Bucket_3_ab'] + self.out_df['Bucket_4_ab'] + self.out_df['Bucket_5_ab'] + self.out_df['Bucket_6_ab'
-                                       ] + self.out_df['Bucket_7_ab'] + self.out_df['Bucket_8_ab']+ self.out_df['Bucket_9_ab']
+                                       ] + self.out_df['Bucket_7_ab'] + self.out_df['Bucket_8_ab'] + self.out_df[
+                                           'Bucket_9_ab']
 
         self.out_df['Top_bucket_ab'] = 10
         for x in range(9, 0, -1):
@@ -947,26 +978,26 @@ class Antibody_buckets(object):
 
         self._summarise_buckets()
 
-       #try:
-        self.out_df = self.out_df[['ensembl_gene_id', 'accession',
+        # try:
+
+        self.out_df.index = self.out_df['ensembl_gene_id']
+
+        self.out_df = self.out_df[['accession',
                                    'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4',
                                    'Bucket_5', 'Bucket_6', 'Bucket_7',
-                                   'Bucket_8', 'Bucket_sum', 'Top_bucket',
+                                   'Bucket_8', 'Bucket_sum', 'Top_bucket','Category',
                                    'ensemble', 'canonical_smiles', 'small_mol_druggable',
                                    'Bucket_1_ab', 'Bucket_2_ab', 'Bucket_3_ab', 'Bucket_4_ab',
                                    'Bucket_5_ab', 'Bucket_6_ab', 'Bucket_7_ab',
-                                   'Bucket_8_ab',  'Bucket_sum_ab', 'Top_bucket_ab',
-                                   'Uniprot_high_conf_loc', 'GO_high_conf_loc','Uniprot_med_conf_loc',
-                                   'GO_med_conf_loc', 'Transmembrane','Signal peptide', 'main_location'
+                                   'Bucket_8_ab', 'Bucket_9_ab', 'Bucket_sum_ab', 'Top_bucket_ab',
+                                   'uniprot_loc_test','Uniprot_high_conf_loc', 'GO_high_conf_loc', 'Uniprot_med_conf_loc',
+                                   'GO_med_conf_loc', 'Transmembrane', 'Signal peptide', 'main_location'
                                    ]]
         self.out_df.rename(columns={'canonical_smiles': 'High Quality ChEMBL compounds',
                                     'small_mol_druggable': 'Small Molecule Druggable Genome Member',
-                                    'main_location':'HPA main location'}, inplace=True)
+                                    'main_location': 'HPA main location'}, inplace=True)
+        self.out_df.sort_values(['Top_bucket','Bucket_sum'], ascending=[True, False], inplace=True)
 
-        # except KeyError:
-        #     self.out_df= self.out_df = self.out_df[['ensembl_gene_id', 'accession', 'target_chembl_id'
-        #                            'Bucket_1','Bucket_2','Bucket_3','Bucket_4','Bucket_5','Bucket_6','Bucket_7',
-        #                            'Bucket_8','Bucket_10', 'Bucket_1','Bucket_sum', 'Top_bucket',
-        #                            'ensemble', 'canonical_smiles', 'small_mol_druggable']]
+
 
         return self.out_df
