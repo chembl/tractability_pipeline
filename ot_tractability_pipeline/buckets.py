@@ -224,7 +224,6 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         '''
 
         def other_func(x):
-
             return tuple(set(x))
 
         self._search_chembl_clinical()
@@ -380,7 +379,6 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         df = df.groupby('ensembl_gene_id', as_index=False).max()
         df['ensemble'].fillna(-1, inplace=True)
 
-
         self.out_df = df.merge(self.out_df, how='right', on='ensembl_gene_id')
         self.out_df['Bucket_5'] = 0
         self.out_df['Bucket_6'] = 0
@@ -462,7 +460,6 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
         self.out_df.loc[(self.out_df['canonical_smiles'] >= 2), 'Bucket_7'] = 1
 
-
         # Use RDKit to count scaffolds
         # PandasTools.AddMoleculeColumnToFrame(self.activities,'canonical_smiles','molecule')
         # PandasTools.AddMurckoToFrame(self.activities,molCol='molecule',MurckoCol='scaffold',Generic=True)
@@ -524,14 +521,14 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         for x in range(8, 0, -1):
             self.out_df.loc[(self.out_df['Bucket_{}'.format(x)] == 1), 'Top_bucket'] = x
 
-    def _clinical_precedence(self,s):
-        return 1*s['Bucket_1'] + 0.7*s['Bucket_2'] + 0.2*s['Bucket_3']
+    def _clinical_precedence(self, s):
+        return 1 * s['Bucket_1'] + 0.7 * s['Bucket_2'] + 0.2 * s['Bucket_3']
 
-    def _discovery_precedence(self,s):
-        return 0.7*s['Bucket_4']+0.3*s['Bucket_7']
+    def _discovery_precedence(self, s):
+        return 0.7 * s['Bucket_4'] + 0.3 * s['Bucket_7']
 
-    def _predicted_tractable(self,s):
-        return 0.7*s['Bucket_5'] + 0.3*s['Bucket_6'] + 0.3 * s['Bucket_8']
+    def _predicted_tractable(self, s):
+        return 0.7 * s['Bucket_5'] + 0.3 * s['Bucket_6'] + 0.3 * s['Bucket_8']
 
     def assign_buckets(self):
         '''
@@ -557,8 +554,8 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
         self.out_df['Category'] = 'Unknown'
         self.out_df['Clinical Precedence'] = self.out_df.apply(self._clinical_precedence, axis=1)
-        self.out_df['Discovery Precedence'] = self.out_df.apply(self._discovery_precedence,axis=1)
-        self.out_df['Predicted Tractable'] = self.out_df.apply(self._predicted_tractable,axis=1)
+        self.out_df['Discovery Precedence'] = self.out_df.apply(self._discovery_precedence, axis=1)
+        self.out_df['Predicted Tractable'] = self.out_df.apply(self._predicted_tractable, axis=1)
 
         self.out_df.loc[(self.out_df['Top_bucket'] <= 3), 'Category'] = 'Clinical Precedence'
         self.out_df.loc[(self.out_df['Top_bucket'] == 4) | (self.out_df['Top_bucket'] == 7),
@@ -959,7 +956,6 @@ class Antibody_buckets(object):
         self.out_df['Transmembrane'] = self.out_df['Transmembrane'].apply(self._split_loc_b7)
         self.out_df['Signal peptide'] = self.out_df['Signal peptide'].apply(self._split_loc_b7)
 
-
     ##############################################################################################################
     #
     # Functions relating to buckets 9
@@ -1006,14 +1002,14 @@ class Antibody_buckets(object):
     #
     ##############################################################################################################
 
-    def _clinical_precedence(self,s):
-        return 1*s['Bucket_1_ab'] + 0.7*s['Bucket_2_ab'] + 0.2*s['Bucket_3_ab']
+    def _clinical_precedence(self, s):
+        return 1 * s['Bucket_1_ab'] + 0.7 * s['Bucket_2_ab'] + 0.2 * s['Bucket_3_ab']
 
-    def _high_conf_pred(self,s):
-        return 0.7*s['Bucket_4_ab'] + 0.3*s['Bucket_5_ab']
+    def _high_conf_pred(self, s):
+        return 0.7 * s['Bucket_4_ab'] + 0.3 * s['Bucket_5_ab']
 
-    def _med_conf_pred(self,s):
-        return 0.4*s['Bucket_6_ab'] + 0.25*s['Bucket_7_ab'] + 0.25 * s['Bucket_8_ab'] + 0.1* s['Bucket_9_ab']
+    def _med_conf_pred(self, s):
+        return 0.4 * s['Bucket_6_ab'] + 0.25 * s['Bucket_7_ab'] + 0.25 * s['Bucket_8_ab'] + 0.1 * s['Bucket_9_ab']
 
     def _summarise_buckets(self):
 
@@ -1066,8 +1062,8 @@ class Antibody_buckets(object):
         self.out_df.rename(columns={'canonical_smiles': 'High Quality ChEMBL compounds',
                                     'small_mol_druggable': 'Small Molecule Druggable Genome Member',
                                     'main_location': 'HPA main location'}, inplace=True)
-        self.out_df.sort_values(['Clinical Precedence', 'Discovery Precedence', 'Predicted Tractable'], ascending=[False, False, False], inplace=True)
-
+        self.out_df.sort_values(['Clinical Precedence', 'Discovery Precedence', 'Predicted Tractable'],
+                                ascending=[False, False, False], inplace=True)
 
         # Score each category, and label highest category
         self.out_df['Clinical Precedence_ab'] = self.out_df.apply(self._clinical_precedence, axis=1)
@@ -1082,7 +1078,7 @@ class Antibody_buckets(object):
 
         self.out_df.loc[
             (self.out_df['Top_bucket_ab'] == 6) | (self.out_df['Top_bucket_ab'] == 7) | (
-                        self.out_df['Top_bucket_ab'] == 8) | (self.out_df['Top_bucket_ab'] == 9),
+                    self.out_df['Top_bucket_ab'] == 8) | (self.out_df['Top_bucket_ab'] == 9),
             'Category_ab'] = 'Predicted Tractable - Medium to low confidence'
 
         return self.out_df
