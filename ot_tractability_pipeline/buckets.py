@@ -148,7 +148,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
     ##############################################################################################################
     #
     # Functions relating to buckets 1-3
-    #
+    # Clinical Compounds
     #
     ##############################################################################################################
 
@@ -221,12 +221,10 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
         Group activity data by target, assign the Max Phase for each targets, and use it to assign buckets 1 to 3
 
-        Possible duplication of effort of the OT known_drug score
-
-        :return:
         '''
 
         def other_func(x):
+
             return tuple(set(x))
 
         self._search_chembl_clinical()
@@ -257,7 +255,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
     ##############################################################################################################
     #
     # Functions relating to bucket 4
-    #
+    # PDB
     #
     ##############################################################################################################
 
@@ -368,7 +366,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
     ##############################################################################################################
     #
     # Functions relating to buckets 5-6
-    #
+    # DrugEBIlity
     #
     ##############################################################################################################
 
@@ -382,7 +380,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         df = df.groupby('ensembl_gene_id', as_index=False).max()
         df['ensemble'].fillna(-1, inplace=True)
 
-        print(self.out_df)
+
         self.out_df = df.merge(self.out_df, how='right', on='ensembl_gene_id')
         self.out_df['Bucket_5'] = 0
         self.out_df['Bucket_6'] = 0
@@ -393,7 +391,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
     ##############################################################################################################
     #
     # Functions relating to bucket 7
-    #
+    # ChEBML
     #
     ##############################################################################################################
 
@@ -439,6 +437,8 @@ Please supply a valid database URL to your local ChEMBL installation using one o
     def _assign_bucket_7(self):
         '''
         Does the target have ligands in ChEMBL (PFI <=7, SMART hits <= 2, scaffolds >= 2)
+        Scaffold counting currently not implemented
+
         '''
         self._search_chembl()
         self.activities['pfi'] = self.activities.apply(self._calc_pfi, axis=1)
@@ -462,6 +462,8 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
         self.out_df.loc[(self.out_df['canonical_smiles'] >= 2), 'Bucket_7'] = 1
 
+
+        # Use RDKit to count scaffolds
         # PandasTools.AddMoleculeColumnToFrame(self.activities,'canonical_smiles','molecule')
         # PandasTools.AddMurckoToFrame(self.activities,molCol='molecule',MurckoCol='scaffold',Generic=True)
         # self.activities.to_csv('scaffolds.csv')
@@ -494,7 +496,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
     def _assign_bucket_9(self):
         '''
-        Search to see whether targets have chemical patents in last 5 years
+        Future bucket
 
         '''
 
@@ -509,6 +511,11 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
     def _summarise_buckets(self):
 
+        '''
+        Calculate the best highest bucket for each target
+        :return:
+        '''
+
         self.out_df['Bucket_sum'] = self.out_df['Bucket_1'] + self.out_df['Bucket_2'] + self.out_df[
             'Bucket_3'] + self.out_df['Bucket_4'] + self.out_df['Bucket_5'] + self.out_df['Bucket_6'] + self.out_df[
                                         'Bucket_7'] + self.out_df['Bucket_8']
@@ -516,6 +523,15 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         self.out_df['Top_bucket'] = 10
         for x in range(8, 0, -1):
             self.out_df.loc[(self.out_df['Bucket_{}'.format(x)] == 1), 'Top_bucket'] = x
+
+    def _clinical_precedence(self,s):
+        return 1*s['Bucket_1'] + 0.7*s['Bucket_2'] + 0.2*s['Bucket_3']
+
+    def _discovery_precedence(self,s):
+        return 0.7*s['Bucket_4']+0.3*s['Bucket_7']
+
+    def _predicted_tractable(self,s):
+        return 0.7*s['Bucket_5'] + 0.3*s['Bucket_6'] + 0.3 * s['Bucket_8']
 
     def assign_buckets(self):
         '''
@@ -531,12 +547,18 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         # self._assign_bucket_9()
         self._summarise_buckets()
 
+        # Add extra buckets to the list below
         self.out_df = self.out_df[['ensembl_gene_id', 'accession',
                                    'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4', 'Bucket_5', 'Bucket_6', 'Bucket_7',
-                                   'Bucket_8', 'Bucket_1', 'Bucket_sum', 'Top_bucket',
+                                   'Bucket_8', 'Bucket_sum', 'Top_bucket',
                                    'ensemble', 'canonical_smiles', 'small_mol_druggable']]
 
+        # Calculate category scores and assign highest category to each target
+
         self.out_df['Category'] = 'Unknown'
+        self.out_df['Clinical Precedence'] = self.out_df.apply(self._clinical_precedence, axis=1)
+        self.out_df['Discovery Precedence'] = self.out_df.apply(self._discovery_precedence,axis=1)
+        self.out_df['Predicted Tractable'] = self.out_df.apply(self._predicted_tractable,axis=1)
 
         self.out_df.loc[(self.out_df['Top_bucket'] <= 3), 'Category'] = 'Clinical Precedence'
         self.out_df.loc[(self.out_df['Top_bucket'] == 4) | (self.out_df['Top_bucket'] == 7),
@@ -606,7 +628,7 @@ class Antibody_buckets(object):
     ##############################################################################################################
     #
     # Functions relating to buckets 1-3
-    #
+    # Clinical antibodies
     #
     ##############################################################################################################
 
@@ -704,8 +726,8 @@ class Antibody_buckets(object):
 
     ##############################################################################################################
     #
-    # Functions relating to buckets 4, 6 and 7 (Uniprot loc)
-    #
+    # Functions relating to buckets 4, 6 and 7
+    # Uniprot location
     #
     ##############################################################################################################
 
@@ -734,7 +756,11 @@ class Antibody_buckets(object):
         return self._make_request(full_url, data.encode())
 
     def split_loc(self, s):
-
+        '''
+        Process the delimited string returned from uniprot webservice call
+        :param s:
+        :return:
+        '''
         try:
             loc_list = [a.split('. ') for a in s.split(';')]
             loc_evidence_li = []
@@ -755,7 +781,7 @@ class Antibody_buckets(object):
                 # evidence = l2[l2.find("{") + 1:l2.find("}")]
                 evidence = re.findall(r'\{([^]]*)\}', l2)
                 evidence = [e for x in evidence for e in x.split(',')]
-                print(evidence)
+
                 if len(evidence) == 0:
                     evidence = ['Unknown evidence type']
 
@@ -806,6 +832,7 @@ class Antibody_buckets(object):
         Uniprot (loc): Targets in "Cell membrane" or "Secreted", high confidence
         '''
 
+        # Return all reviewed and Human targets
         url = "uniprot/?format=tab&query=*&fil=reviewed%3ayes+AND+organism%3a%22Homo+sapiens+(Human)+%5b9606%5d%22&columns=id,comment(SUBCELLULAR+LOCATION),comment(DOMAIN),feature(DOMAIN+EXTENT),feature(INTRAMEMBRANE),feature(TOPOLOGICAL+DOMAIN),feature(TRANSMEMBRANE),feature(SIGNAL)"
         data = ['P42336', 'P60484']
 
@@ -823,8 +850,8 @@ class Antibody_buckets(object):
 
     ##############################################################################################################
     #
-    # Functions relating to buckets 5 and 8 (GO CC)
-    #
+    # Functions relating to buckets 5 and 8
+    # GO Cell Component
     #
     ##############################################################################################################
 
@@ -834,6 +861,7 @@ class Antibody_buckets(object):
         except:
             return 0, [], 0, []
 
+        # Confidence for each evidence type
         evidence_types = {'EXP': 'High', 'IDA': 'High', 'IPI': 'High', 'TAS': 'High', 'IMP': 'High', 'IGI': 'High',
                           'IEP': 'High',
                           'ISS': 'Medium', 'ISO': 'Medium', 'ISA': 'Medium', 'ISM': 'Medium', 'IGC': 'Medium',
@@ -893,9 +921,29 @@ class Antibody_buckets(object):
     ##############################################################################################################
     #
     # Functions relating to bucket 7
-    #
+    # Uniprot transmembrane and signal peptides
     #
     ##############################################################################################################
+
+    def _split_loc_b7(self, s):
+
+        try:
+            loc_list = [a.split('.') for a in s.split(';')]
+            loc_evidence_li = []
+
+        except AttributeError:
+            return [('na', 'na')]
+
+        for l in loc_list:
+            for l2 in l:
+                if l2 == '':
+                    continue
+
+                l2 = l2.strip()
+                l2 = re.sub(r'{[^}]+}', '', l2)
+                if l2.startswith('TRANSMEM') or l2.startswith('SIGNAL'):
+                    loc_evidence_li.append(l2)
+        return loc_evidence_li
 
     def _assign_bucket_7(self):
         '''
@@ -908,10 +956,14 @@ class Antibody_buckets(object):
         self.out_df.loc[(self.out_df['Transmembrane'].str.contains('TRANSMEM', na=False)), 'Bucket_7_ab'] = 1
         self.out_df.loc[(self.out_df['Signal peptide'].str.contains('SIGNAL', na=False)), 'Bucket_7_ab'] = 1
 
+        self.out_df['Transmembrane'] = self.out_df['Transmembrane'].apply(self._split_loc_b7)
+        self.out_df['Signal peptide'] = self.out_df['Signal peptide'].apply(self._split_loc_b7)
+
+
     ##############################################################################################################
     #
     # Functions relating to buckets 9
-    #
+    # Human protein atlas - Main location
     #
     ##############################################################################################################
 
@@ -927,6 +979,7 @@ class Antibody_buckets(object):
         HPA
         '''
 
+        # Download latest file
         with urllib2.urlopen(
                 'https://www.proteinatlas.org/download/subcellular_location.tsv.zip') as zip_file:
             with zipfile.ZipFile(io.BytesIO(zip_file.read()), 'r') as pa_file:
@@ -952,6 +1005,15 @@ class Antibody_buckets(object):
     #
     #
     ##############################################################################################################
+
+    def _clinical_precedence(self,s):
+        return 1*s['Bucket_1_ab'] + 0.7*s['Bucket_2_ab'] + 0.2*s['Bucket_3_ab']
+
+    def _high_conf_pred(self,s):
+        return 0.7*s['Bucket_4_ab'] + 0.3*s['Bucket_5_ab']
+
+    def _med_conf_pred(self,s):
+        return 0.4*s['Bucket_6_ab'] + 0.25*s['Bucket_7_ab'] + 0.25 * s['Bucket_8_ab'] + 0.1* s['Bucket_9_ab']
 
     def _summarise_buckets(self):
 
@@ -986,22 +1048,31 @@ class Antibody_buckets(object):
 
         self.out_df.index = self.out_df['ensembl_gene_id']
 
+        # Columns to keep. This includes columns from the small molecule pipeline
+
         self.out_df = self.out_df[['accession',
                                    'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4',
                                    'Bucket_5', 'Bucket_6', 'Bucket_7',
                                    'Bucket_8', 'Bucket_sum', 'Top_bucket', 'Category',
+                                   'Clinical Precedence', 'Discovery Precedence', 'Predicted Tractable',
                                    'ensemble', 'canonical_smiles', 'small_mol_druggable',
                                    'Bucket_1_ab', 'Bucket_2_ab', 'Bucket_3_ab', 'Bucket_4_ab',
                                    'Bucket_5_ab', 'Bucket_6_ab', 'Bucket_7_ab',
                                    'Bucket_8_ab', 'Bucket_9_ab', 'Bucket_sum_ab', 'Top_bucket_ab',
-                                   'uniprot_loc_test', 'Uniprot_high_conf_loc', 'GO_high_conf_loc',
+                                   'Uniprot_high_conf_loc', 'GO_high_conf_loc',
                                    'Uniprot_med_conf_loc',
                                    'GO_med_conf_loc', 'Transmembrane', 'Signal peptide', 'main_location'
                                    ]]
         self.out_df.rename(columns={'canonical_smiles': 'High Quality ChEMBL compounds',
                                     'small_mol_druggable': 'Small Molecule Druggable Genome Member',
                                     'main_location': 'HPA main location'}, inplace=True)
-        self.out_df.sort_values(['Top_bucket', 'Bucket_sum'], ascending=[True, False], inplace=True)
+        self.out_df.sort_values(['Clinical Precedence', 'Discovery Precedence', 'Predicted Tractable'], ascending=[False, False, False], inplace=True)
+
+
+        # Score each category, and label highest category
+        self.out_df['Clinical Precedence_ab'] = self.out_df.apply(self._clinical_precedence, axis=1)
+        self.out_df['Predicted Tractable - High confidence'] = self.out_df.apply(self._high_conf_pred, axis=1)
+        self.out_df['Predicted Tractable - Medium to low confidence'] = self.out_df.apply(self._med_conf_pred, axis=1)
 
         self.out_df['Category_ab'] = 'Unknown'
 
