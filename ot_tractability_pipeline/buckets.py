@@ -379,7 +379,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         df = df.groupby('ensembl_gene_id', as_index=False).max()
         df['ensemble'].fillna(-1, inplace=True)
 
-        self.out_df = df.merge(self.out_df, how='right', on='ensembl_gene_id')
+        self.out_df = df.merge(self.out_df, how='right', on='ensembl_gene_id' , suffixes=['_drop',''])
         self.out_df['Bucket_5'] = 0
         self.out_df['Bucket_6'] = 0
 
@@ -450,7 +450,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
         f = {x: 'first' for x in df.columns}
         f['canonical_smiles'] = 'count'
-
+        print(self.out_df.columns)
         df2 = df.groupby('accession').agg(f).reset_index(drop=True)
         df2 = df2[['accession', 'canonical_smiles', 'target_chembl_id']]
         self.out_df = df2.merge(self.out_df, how='right', on='accession')
@@ -478,11 +478,12 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         '''
         df = pd.read_csv(os.path.join(DATA_PATH, 'druggable_genome.csv'))
         df = df[['ensembl_gene_id', 'small_mol_druggable']]
-        df['small_mol_druggable'].fillna('N', inplace=True)
+
 
         self.out_df = df.merge(self.out_df, how='right', on='ensembl_gene_id')
         self.out_df['Bucket_8'] = 0
         self.out_df.loc[(self.out_df['small_mol_druggable'] == 'Y'), 'Bucket_8'] = 1
+        self.out_df['small_mol_druggable'].fillna('N', inplace=True)
 
     ##############################################################################################################
     #
@@ -513,13 +514,15 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         :return:
         '''
 
+        self.out_df['Top_bucket'] = 9
+        for x in range(8, 0, -1):
+            self.out_df.loc[(self.out_df['Bucket_{}'.format(x)] == 1), 'Top_bucket'] = x
+            self.out_df['Bucket_{}'.format(x)].fillna(0, inplace=True)
+
         self.out_df['Bucket_sum'] = self.out_df['Bucket_1'] + self.out_df['Bucket_2'] + self.out_df[
             'Bucket_3'] + self.out_df['Bucket_4'] + self.out_df['Bucket_5'] + self.out_df['Bucket_6'] + self.out_df[
                                         'Bucket_7'] + self.out_df['Bucket_8']
 
-        self.out_df['Top_bucket'] = 10
-        for x in range(8, 0, -1):
-            self.out_df.loc[(self.out_df['Bucket_{}'.format(x)] == 1), 'Top_bucket'] = x
 
     def _clinical_precedence(self, s):
         return 1 * s['Bucket_1'] + 0.7 * s['Bucket_2'] + 0.2 * s['Bucket_3']
@@ -1015,14 +1018,17 @@ class Antibody_buckets(object):
 
         self.out_df.drop('go', inplace=True, axis=1)
 
+        self.out_df['Top_bucket_ab'] = 10
+        for x in range(9, 0, -1):
+            self.out_df.loc[(self.out_df['Bucket_{}_ab'.format(x)] == 1), 'Top_bucket_ab'] = x
+            self.out_df['Bucket_{}_ab'.format(x)].fillna(0, inplace=True)
+
         self.out_df['Bucket_sum_ab'] = self.out_df['Bucket_1_ab'] + self.out_df['Bucket_2_ab'] + self.out_df[
             'Bucket_3_ab'] + self.out_df['Bucket_4_ab'] + self.out_df['Bucket_5_ab'] + self.out_df['Bucket_6_ab'
                                        ] + self.out_df['Bucket_7_ab'] + self.out_df['Bucket_8_ab'] + self.out_df[
                                            'Bucket_9_ab']
 
-        self.out_df['Top_bucket_ab'] = 10
-        for x in range(9, 0, -1):
-            self.out_df.loc[(self.out_df['Bucket_{}_ab'.format(x)] == 1), 'Top_bucket_ab'] = x
+
 
         self.out_df.set_index('ensembl_gene_id')
 
