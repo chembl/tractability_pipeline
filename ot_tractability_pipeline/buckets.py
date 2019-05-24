@@ -556,17 +556,17 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         # Calculate category scores and assign highest category to each target
 
         self.out_df['Category'] = 'Unknown'
-        self.out_df['Clinical Precedence'] = self.out_df.apply(self._clinical_precedence, axis=1)
-        self.out_df['Discovery Precedence'] = self.out_df.apply(self._discovery_precedence, axis=1)
-        self.out_df['Predicted Tractable'] = self.out_df.apply(self._predicted_tractable, axis=1)
+        self.out_df['Clinical_Precedence'] = self.out_df.apply(self._clinical_precedence, axis=1)
+        self.out_df['Discovery_Precedence'] = self.out_df.apply(self._discovery_precedence, axis=1)
+        self.out_df['Predicted_Tractable'] = self.out_df.apply(self._predicted_tractable, axis=1)
 
-        self.out_df.loc[(self.out_df['Top_bucket'] <= 3), 'Category'] = 'Clinical Precedence'
+        self.out_df.loc[(self.out_df['Top_bucket'] <= 3), 'Category'] = 'Clinical_Precedence'
         self.out_df.loc[(self.out_df['Top_bucket'] == 4) | (self.out_df['Top_bucket'] == 7),
-                        'Category'] = 'Discovery Precedence'
+                        'Category'] = 'Discovery_Precedence'
 
         self.out_df.loc[
             (self.out_df['Top_bucket'] == 5) | (self.out_df['Top_bucket'] == 6) | (self.out_df['Top_bucket'] == 8),
-            'Category'] = 'Predicted Tractable'
+            'Category'] = 'Predicted_Tractable'
 
         return self.out_df
 
@@ -954,10 +954,10 @@ class Antibody_buckets(object):
         self.out_df['Bucket_7_ab'] = 0
 
         self.out_df.loc[(self.out_df['Transmembrane'].str.contains('TRANSMEM', na=False)), 'Bucket_7_ab'] = 1
-        self.out_df.loc[(self.out_df['Signal peptide'].str.contains('SIGNAL', na=False)), 'Bucket_7_ab'] = 1
+        self.out_df.loc[(self.out_df['Signal_peptide'].str.contains('SIGNAL', na=False)), 'Bucket_7_ab'] = 1
 
         self.out_df['Transmembrane'] = self.out_df['Transmembrane'].apply(self._split_loc_b7)
-        self.out_df['Signal peptide'] = self.out_df['Signal peptide'].apply(self._split_loc_b7)
+        self.out_df['Signal_peptide'] = self.out_df['Signal_peptide'].apply(self._split_loc_b7)
 
     ##############################################################################################################
     #
@@ -1056,35 +1056,35 @@ class Antibody_buckets(object):
                                    'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4',
                                    'Bucket_5', 'Bucket_6', 'Bucket_7',
                                    'Bucket_8', 'Bucket_sum', 'Top_bucket', 'Category',
-                                   'Clinical Precedence', 'Discovery Precedence', 'Predicted Tractable',
+                                   'Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable',
                                    'ensemble', 'canonical_smiles', 'small_mol_druggable',
                                    'Bucket_1_ab', 'Bucket_2_ab', 'Bucket_3_ab', 'Bucket_4_ab',
                                    'Bucket_5_ab', 'Bucket_6_ab', 'Bucket_7_ab',
                                    'Bucket_8_ab', 'Bucket_9_ab', 'Bucket_sum_ab', 'Top_bucket_ab',
                                    'Uniprot_high_conf_loc', 'GO_high_conf_loc',
                                    'Uniprot_med_conf_loc',
-                                   'GO_med_conf_loc', 'Transmembrane', 'Signal peptide', 'main_location'
+                                   'GO_med_conf_loc', 'Transmembrane', 'Signal_peptide', 'main_location'
                                    ]]
-        self.out_df.rename(columns={'canonical_smiles': 'High Quality ChEMBL compounds',
-                                    'small_mol_druggable': 'Small Molecule Druggable Genome Member',
+        self.out_df.rename(columns={'canonical_smiles': 'High_Quality_ChEMBL_compounds',
+                                    'small_mol_druggable': 'Small_Molecule_Druggable_Genome_Member',
                                     'main_location': 'HPA main location'}, inplace=True)
-        self.out_df.sort_values(['Clinical Precedence', 'Discovery Precedence', 'Predicted Tractable'],
+        self.out_df.sort_values(['Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable'],
                                 ascending=[False, False, False], inplace=True)
 
         # Score each category, and label highest category
-        self.out_df['Clinical Precedence_ab'] = self.out_df.apply(self._clinical_precedence, axis=1)
-        self.out_df['Predicted Tractable - High confidence'] = self.out_df.apply(self._high_conf_pred, axis=1)
-        self.out_df['Predicted Tractable - Medium to low confidence'] = self.out_df.apply(self._med_conf_pred, axis=1)
+        self.out_df['Clinical_Precedence_ab'] = self.out_df.apply(self._clinical_precedence, axis=1)
+        self.out_df['Predicted_Tractable__High_confidence'] = self.out_df.apply(self._high_conf_pred, axis=1)
+        self.out_df['Predicted_Tractable__Medium_to_low_confidence'] = self.out_df.apply(self._med_conf_pred, axis=1)
 
         self.out_df['Category_ab'] = 'Unknown'
 
-        self.out_df.loc[(self.out_df['Top_bucket_ab'] <= 3), 'Category_ab'] = 'Clinical Precedence'
+        self.out_df.loc[(self.out_df['Top_bucket_ab'] <= 3), 'Category_ab'] = 'Clinical_Precedence'
         self.out_df.loc[(self.out_df['Top_bucket_ab'] == 4) | (self.out_df['Top_bucket_ab'] == 5),
-                        'Category_ab'] = 'Predicted Tractable - High confidence'
+                        'Category_ab'] = 'Predicted_Tractable__High_confidence'
 
         self.out_df.loc[
             (self.out_df['Top_bucket_ab'] == 6) | (self.out_df['Top_bucket_ab'] == 7) | (
                     self.out_df['Top_bucket_ab'] == 8) | (self.out_df['Top_bucket_ab'] == 9),
-            'Category_ab'] = 'Predicted Tractable - Medium to low confidence'
+            'Category_ab'] = 'Predicted_Tractable__Medium_to_low_confidence'
 
-        return self.out_df
+        return self.out_df.astype({x:'int64' for x in self.out_df.columns if "Bucket" in x})
