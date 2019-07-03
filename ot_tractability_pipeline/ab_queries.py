@@ -1,13 +1,15 @@
+from ot_tractability_pipeline.sm_queries import CHEMBL_VERSION
+
 chembl_clinical_ab = '''
 select distinct mh.parent_molregno, di.efo_id, di.efo_term, di.max_phase_for_ind
-from CHEMBL_24.molecule_dictionary md,
-	CHEMBL_24.molecule_hierarchy mh,
-	CHEMBL_24.drug_indication di
+from {0}.molecule_dictionary md,
+	{0}.molecule_hierarchy mh,
+	{0}.drug_indication di
 where md.molregno = mh.molregno
 and md.molregno = di.molregno
 and md.therapeutic_flag = 1
 and md.molecule_type = 'Antibody'
-'''
+'''.format(CHEMBL_VERSION)
 
 chembl_clinical_ab_targets = '''
 select distinct mh.parent_molregno, 
@@ -22,13 +24,13 @@ select distinct mh.parent_molregno,
 	mr.ref_id,
 	mr.ref_url,
 	dm.site_id
-from CHEMBL_24.molecule_dictionary md,
-	CHEMBL_24.molecule_hierarchy mh,
-	CHEMBL_24.drug_mechanism dm,
-	CHEMBL_24.target_dictionary td,
-	CHEMBL_24.target_components tc,
-	CHEMBL_24.component_sequences cs,
-	CHEMBL_24.mechanism_refs mr
+from {0}.molecule_dictionary md,
+	{0}.molecule_hierarchy mh,
+	{0}.drug_mechanism dm,
+	{0}.target_dictionary td,
+	{0}.target_components tc,
+	{0}.component_sequences cs,
+	{0}.mechanism_refs mr
 where md.molregno = dm.molregno
 and md.molregno = mh.molregno
 and dm.tid = td.tid
@@ -39,4 +41,4 @@ and md.therapeutic_flag = 1
 and md.molecule_type = 'Antibody'
 and td.tax_id = 9606
 and td.target_type like '%PROTEIN%'
-'''
+'''.format(CHEMBL_VERSION)
