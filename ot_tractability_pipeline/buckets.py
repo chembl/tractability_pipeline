@@ -184,10 +184,10 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         for chunk in chunks:
             q = '''
             select distinct bs.site_id, td.tid 
-            from CHEMBL_25.target_dictionary td, CHEMBL_25.binding_sites bs
-            where td.tid = bs.tid and td.tid IN {}
+            from {0}.target_dictionary td, {0}.binding_sites bs
+            where td.tid = bs.tid and td.tid IN {1}
             
-            '''.format(tuple(chunk))
+            '''.format(CHEMBL_VERSION, tuple(chunk))
             df_list.append(pd.read_sql_query(q, self.engine))
 
         # Merge will set those with unknown binding site as NAN
@@ -206,9 +206,9 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         for chunk in chunks:
             q2 = '''
             select distinct sc.component_id, cs.accession
-            from CHEMBL_25.component_sequences cs, CHEMBL_25.site_components sc
+            from {0}.component_sequences cs, {0}.site_components sc
             where cs.component_id = sc.component_id
-            and cs.accession in {}'''.format(tuple(chunk))
+            and cs.accession in {1}'''.format(CHEMBL_VERSION,tuple(chunk))
             df_list2.append(pd.read_sql_query(q2, self.engine))
 
         binding_subunit = pd.concat(df_list2, sort=False)
@@ -217,7 +217,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
         self.all_chembl_targets = pd.concat([binding_subunits, undefined, not_pc], sort=False)
 
-    def _assign_buckets_1_to_3(self):
+    def _assess_clinical(self):
         '''
         Merge the results of the ChEMBL search with the OT data (right join, to keep all OT targets)
 
@@ -370,7 +370,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
 
 
-    def _assign_bucket_4(self):
+    def _assess_pdb(self):
         '''
         Does the target have a ligand-bound protein crystal structure?
         '''
@@ -394,7 +394,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
     #
     ##############################################################################################################
 
-    def _assign_bucket_5_and_6(self):
+    def _assess_pockets(self):
         '''
         Does the target have a DrugEBIlity ensemble score >=0.7 (bucket 5) or  0<score<0.7 (bucket 6)
         '''
@@ -434,17 +434,17 @@ Please supply a valid database URL to your local ChEMBL installation using one o
     def _structural_alerts(self):
         q = '''
         select distinct cs.canonical_smiles, csa.alert_id /*, sa.alert_name, sas.set_name */
-        from CHEMBL_25.compound_structures cs,
-            CHEMBL_25.compound_structural_alerts csa,
-            CHEMBL_25.structural_alerts sa,
-            CHEMBL_25.molecule_dictionary md,
-            CHEMBL_25.structural_alert_sets sas
+        from {0}.compound_structures cs,
+            {0}.compound_structural_alerts csa,
+            {0}.structural_alerts sa,
+            {0}.molecule_dictionary md,
+            {0}.structural_alert_sets sas
         where cs.molregno = md.molregno
         and cs.molregno = csa.molregno
         and csa.alert_id = sa.alert_id
         and sa.alert_set_id = 1
         and sa.alert_set_id = sas.alert_set_id
-        '''
+        '''.format(CHEMBL_VERSION)
 
         alerts = pd.read_sql_query(q, self.engine)
         alerts = alerts.groupby('canonical_smiles', as_index=False).count()
@@ -457,7 +457,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         logd = s['acd_logd']
         return ar + logd
 
-    def _assign_bucket_7(self):
+    def _assess_chembl(self):
         '''
         Does the target have ligands in ChEMBL (PFI <=7, SMART hits <= 2, scaffolds >= 2)
         Scaffold counting currently not implemented
@@ -497,7 +497,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
     #
     ##############################################################################################################
 
-    def _assign_bucket_8(self):
+    def _assess_druggable_genome(self):
         '''
         Is this target considered druggable using Finan et al's druggable genome?
         '''
@@ -564,11 +564,11 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         :return: A Pandas DataFrame containing the Ensembl gene ID and associated tractability bucket
         '''
 
-        self._assign_buckets_1_to_3()
-        self._assign_bucket_4()
-        self._assign_bucket_5_and_6()
-        self._assign_bucket_7()
-        self._assign_bucket_8()
+        self._assess_clinical()
+        self._assess_pdb()
+        self._assess_pockets()
+        self._assess_chembl()
+        self._assess_druggable_genome()
         # self._assign_bucket_9()
         self._summarise_buckets()
 
@@ -680,10 +680,10 @@ class Antibody_buckets(object):
         for chunk in chunks:
             q2 = '''
             select distinct cs.accession, sc.component_id
-            from CHEMBL_25.component_sequences cs,
-                CHEMBL_25.site_components sc
+            from {0}.component_sequences cs,
+                {0}.site_components sc
             where cs.component_id = sc.component_id
-            and sc.site_id in {}'''.format(tuple(chunk))
+            and sc.site_id in {1}'''.format(CHEMBL_VERSION,tuple(chunk))
             df_list2.append(pd.read_sql_query(q2, self.engine))
 
         binding_subunit = pd.concat(df_list2, sort=False)
@@ -747,7 +747,7 @@ class Antibody_buckets(object):
         self.out_df.loc[
             (self.out_df['max_phase_for_ind'] < 2) & (self.out_df['max_phase_for_ind'] > 0), 'Bucket_3_ab'] = 1
 
-        self.out_df.to_csv('test.csv')
+
 
     ##############################################################################################################
     #
@@ -1140,12 +1140,6 @@ class Protac_buckets(object):
         # If antibody results are to be combined with small molecule results, append antibody columns to sm results
         # Otherwise, use the id_xref dataframe
 
-        # Load accepted GO locations
-        self.accepted_go_locs = {}
-        with open(os.path.join(DATA_PATH, 'go_accepted_loc.tsv')) as go_loc_file:
-            for line in go_loc_file:
-                line = line.split('\t')
-                self.accepted_go_locs[line[0]] = line[2]
 
         if sm_output is not None:
             go_data = self.id_xref[['ensembl_gene_id', 'go']]
@@ -1154,14 +1148,6 @@ class Protac_buckets(object):
         else:
             self.out_df = self.id_xref
 
-        # All chembl data loaded into here
-        self.all_chembl_targets = None
-
-        # Unique list of PDB codes:
-        self.pdb_list = []
-
-        # Map back to Uniprot accession
-        self.pdb_map = {}
 
         if database_url is None:
             database_url = os.getenv('CHEMBL_DB')
@@ -1173,44 +1159,11 @@ class Protac_buckets(object):
     ##############################################################################################################
     #
     # Functions relating to buckets 1-3
-    # Clinical antibodies
+    # Clinical PROTAC targets
     #
     ##############################################################################################################
 
-    def _process_protein_complexes(self):
-        '''
-        For protein complexes, see if we know the binding subunit, and only keep these
 
-        :return:
-        '''
-
-        pc = self.all_chembl_targets[self.all_chembl_targets['target_type'].str.contains("PROTEIN COMPLEX")]
-        not_pc = self.all_chembl_targets[~self.all_chembl_targets['target_type'].str.contains("PROTEIN COMPLEX")]
-
-        defined = pc[pc['site_id'].notnull()]
-        undefined = pc[~pc['site_id'].notnull()]
-
-        # if binding site is defined, only take the subunits that are involved in the binding
-
-        n = 1000
-        targets = defined['site_id'].unique()
-        chunks = [targets[i:i + n] for i in range(0, len(targets), n)]
-        df_list2 = []
-
-        for chunk in chunks:
-            q2 = '''
-            select distinct cs.accession, sc.component_id
-            from CHEMBL_25.component_sequences cs,
-                CHEMBL_25.site_components sc
-            where cs.component_id = sc.component_id
-            and sc.site_id in {}'''.format(tuple(chunk))
-            df_list2.append(pd.read_sql_query(q2, self.engine))
-
-        binding_subunit = pd.concat(df_list2, sort=False)
-        temp_pc = pc.merge(binding_subunit, on='accession')
-        binding_subunits = temp_pc[temp_pc['component_id'].notnull()]
-
-        self.all_chembl_targets = pd.concat([binding_subunits, undefined, not_pc], sort=False)
 
     def _assign_buckets_1_to_3(self):
         '''
@@ -1218,56 +1171,12 @@ class Protac_buckets(object):
 
         Group activity data by target, assign the Max Phase for each targets, and use it to assign buckets 1 to 3
 
-        Possible duplication of effort of the OT known_drug score
+
 
         :return:
         '''
 
-        self.all_chembl_targets = pd.read_sql_query(chembl_clinical_ab_targets, self.engine)
-        self.all_chembl_targets.loc[self.all_chembl_targets['ref_type'] == 'Expert', ['ref_id', 'ref_url']] = 'NA'
-
-        #
-
-        self._process_protein_complexes()
-
-        ab_info = pd.read_sql_query(chembl_clinical_ab, self.engine)
-        self.all_chembl_targets = self.all_chembl_targets.merge(ab_info, how='left', on='parent_molregno')
-
-        # Make sure max phase is for correct indication
-
-        self.all_chembl_targets = self.all_chembl_targets[
-            self.all_chembl_targets['max_phase'] == self.all_chembl_targets['max_phase_for_ind']]
-
-        def other_func(x):
-            return tuple(x)
-
-        f = {x: other_func for x in self.all_chembl_targets if x != 'accession'}
-        f['max_phase_for_ind'] = 'max'
-        f['max_phase'] = 'max'
-
-        self.all_chembl_targets = self.all_chembl_targets.groupby('accession', as_index=False).agg(f)
-
-        self.out_df = self.all_chembl_targets.merge(self.out_df, how='outer', on='accession', suffixes=('_sm', '_ab'))
-
-        self.out_df.drop(['component_id', 'drug_name', 'ref_id', 'ref_type', 'tid',
-                          'ref_url'], axis=1, inplace=True)
-
-        f = {x: 'first' for x in self.out_df.columns if x != 'ensembl_gene_id'}
-        f['max_phase_for_ind'] = 'max'
-
-        self.out_df = self.out_df.groupby(['ensembl_gene_id'], as_index=False).agg(f)
-
-        self.out_df['Bucket_1_ab'] = 0
-        self.out_df['Bucket_2_ab'] = 0
-        self.out_df['Bucket_3_ab'] = 0
-
-        self.out_df.loc[(self.out_df['max_phase_for_ind'] == 4), 'Bucket_1_ab'] = 1
-        self.out_df.loc[
-            (self.out_df['max_phase_for_ind'] < 4) & (self.out_df['max_phase_for_ind'] >= 2), 'Bucket_2_ab'] = 1
-        self.out_df.loc[
-            (self.out_df['max_phase_for_ind'] < 2) & (self.out_df['max_phase_for_ind'] > 0), 'Bucket_3_ab'] = 1
-
-        self.out_df.to_csv('test.csv')
+        pass
 
     ##############################################################################################################
     #
@@ -1276,122 +1185,13 @@ class Protac_buckets(object):
     #
     ##############################################################################################################
 
-    def _make_request(self, url, data):
-        request = urllib2.Request(url)
-
-        try:
-            url_file = urllib2.urlopen(request)
-        except urllib2.HTTPError as e:
-            if e.code == 404:
-                print("[NOTFOUND %d] %s" % (e.code, url))
-            else:
-                print("[ERROR %d] %s" % (e.code, url))
-
-            return None
-
-        return url_file.read().decode()
-
-    def _post_request(self, url, data):
-        base = 'http://www.uniprot.org'
-        full_url = "%s/%s" % (base, url)
-
-        if isinstance(data, (list, tuple)):
-            data = ",".join(data)
-
-        return self._make_request(full_url, data.encode())
-
-    def split_loc(self, s):
-        '''
-        Process the delimited string returned from uniprot webservice call
-        :param s:
-        :return:
-        '''
-        try:
-            loc_list = [a.split('. ') for a in s.split(';')]
-            loc_evidence_li = []
-
-        except AttributeError:
-            return [('na', 'na')]
-
-        for l in loc_list:
-            for l2 in l:
-                if l2 == '':
-                    continue
-
-                l2 = l2.strip()
-                if l2.startswith('Note'):
-                    break
-
-                l2 = l2.replace('SUBCELLULAR LOCATION: ', '')
-                # evidence = l2[l2.find("{") + 1:l2.find("}")]
-                evidence = re.findall(r'\{([^]]*)\}', l2)
-                evidence = [e for x in evidence for e in x.split(',')]
-
-                if len(evidence) == 0:
-                    evidence = ['Unknown evidence type']
-
-                locations = l2.split('{')[0]
-
-                if locations != '':
-                    loc_evidence_li.append((evidence, locations))
-        return loc_evidence_li
-
-    def _check_evidence(self, evidence_li):
-
-        high_conf_evidence = [e for e in evidence_li if ('ECO:0000269' in e or 'ECO:0000305' in e)]
-
-        if len(high_conf_evidence) > 0:
-            return True
-        return False
-
-    def _set_b4_flag(self, s):
-
-        accepted_uniprot_high_conf = [a[1] for a in s['Subcellular location [CC]'] if
-                                      ('Cell membrane' in a[1] or 'Secreted' in a[1]) and (self._check_evidence(a[0]))]
-
-        all_uniprot_high_conf = [(a[1], a[0]) for a in s['Subcellular location [CC]'] if self._check_evidence(a[0])]
-
-        if len(accepted_uniprot_high_conf) > 0:
-            b4_flag = 1
-        else:
-            b4_flag = 0
-
-        return b4_flag, all_uniprot_high_conf
-
-    def _set_b6_flag(self, s):
-
-        accepted_uniprot_med_conf = [a[1] for a in s['Subcellular location [CC]'] if
-                                     ('Cell membrane' in a[1] or 'Secreted' in a[1]) and not self._check_evidence(a[0])]
-
-        all_uniprot_med_conf = [(a[1], a[0]) for a in s['Subcellular location [CC]'] if not self._check_evidence(a[0])]
-
-        if len(accepted_uniprot_med_conf) > 0:
-            b6_flag = 1
-        else:
-            b6_flag = 0
-
-        return b6_flag, all_uniprot_med_conf
 
     def _assign_bucket_4_and_6(self):
         '''
         Uniprot (loc): Targets in "Cell membrane" or "Secreted", high confidence
         '''
 
-        # Return all reviewed and Human targets
-        url = "uniprot/?format=tab&query=*&fil=reviewed%3ayes+AND+organism%3a%22Homo+sapiens+(Human)+%5b9606%5d%22&columns=id,comment(SUBCELLULAR+LOCATION),comment(DOMAIN),feature(DOMAIN+EXTENT),feature(INTRAMEMBRANE),feature(TOPOLOGICAL+DOMAIN),feature(TRANSMEMBRANE),feature(SIGNAL)"
-        data = ['P42336', 'P60484']
-
-        location = self._post_request(url, data)
-        location = [x.split('\t') for x in location.split('\n')]
-        df = pd.DataFrame(location[1:], columns=location[0])
-        df['uniprot_loc_test'] = df['Subcellular location [CC]']
-
-        df['Subcellular location [CC]'] = df['Subcellular location [CC]'].apply(self.split_loc)
-        df['Bucket_4_ab'], df['Uniprot_high_conf_loc'] = zip(*df.apply(self._set_b4_flag, axis=1))
-        df['Bucket_6_ab'], df['Uniprot_med_conf_loc'] = zip(*df.apply(self._set_b6_flag, axis=1))
-        df.rename(columns={'Entry': 'accession'}, inplace=True)
-
-        self.out_df = self.out_df.merge(df, how='left', on='accession')
+        pass
 
     ##############################################################################################################
     #
@@ -1400,68 +1200,11 @@ class Protac_buckets(object):
     #
     ##############################################################################################################
 
-    def _set_b5_b8_flag(self, s):
-        try:
-            cc = s['go']['CC']
-        except:
-            return 0, [], 0, []
-
-        # Confidence for each evidence type
-        evidence_types = {'EXP': 'High', 'IDA': 'High', 'IPI': 'High', 'TAS': 'High', 'IMP': 'High', 'IGI': 'High',
-                          'IEP': 'High',
-                          'ISS': 'Medium', 'ISO': 'Medium', 'ISA': 'Medium', 'ISM': 'Medium', 'IGC': 'Medium',
-                          'IBA': 'Medium', 'IBD': 'Medium', 'IKR': 'Medium', 'IRD': 'Medium', 'RCA': 'Medium',
-                          'IEA': 'Medium',
-                          'NAS': 'Low', 'IC': 'Low', 'ND': 'Low', 'NR': 'Low'
-                          }
-
-        high_conf_loc = []
-        med_conf_loc = []
-        accepted_high_conf_loc = []
-        accepted_med_conf_loc = []
-
-        if isinstance(cc, dict):
-            cc = [cc]
-
-        for c_dict in cc:
-            try:
-                go_id = c_dict['id']
-                go_loc = c_dict['term']
-                evidence = c_dict['evidence']
-            except TypeError:
-                continue
-            try:
-                confidence = evidence_types[evidence]
-            except KeyError:
-                confidence = None
-
-            if confidence == 'High':
-                high_conf_loc.append((go_loc, evidence))
-            elif confidence == 'Medium':
-                med_conf_loc.append((go_loc, evidence))
-
-            if go_id in self.accepted_go_locs.keys():
-                if confidence == 'High':
-                    accepted_high_conf_loc.append(go_loc)
-                elif confidence == 'Medium':
-                    accepted_med_conf_loc.append(go_loc)
-
-        b5_flag = 0
-        b8_flag = 0
-
-        if len(accepted_high_conf_loc) > 0:
-            b5_flag = 1
-        elif len(accepted_med_conf_loc) > 0:
-            b8_flag = 1
-
-        return b5_flag, high_conf_loc, b8_flag, med_conf_loc
-
     def _assign_bucket_5_and_8(self):
         '''
         GO CC
         '''
-        self.out_df['Bucket_5_ab'], self.out_df['GO_high_conf_loc'], self.out_df['Bucket_8_ab'], self.out_df[
-            'GO_med_conf_loc'] = zip(*self.out_df.apply(self._set_b5_b8_flag, axis=1))
+        pass
 
     ##############################################################################################################
     #
@@ -1470,39 +1213,13 @@ class Protac_buckets(object):
     #
     ##############################################################################################################
 
-    def _split_loc_b7(self, s):
-
-        try:
-            loc_list = [a.split('.') for a in s.split(';')]
-            loc_evidence_li = []
-
-        except AttributeError:
-            return [('na', 'na')]
-
-        for l in loc_list:
-            for l2 in l:
-                if l2 == '':
-                    continue
-
-                l2 = l2.strip()
-                l2 = re.sub(r'{[^}]+}', '', l2)
-                if l2.startswith('TRANSMEM') or l2.startswith('SIGNAL'):
-                    loc_evidence_li.append(l2)
-        return loc_evidence_li
-
     def _assign_bucket_7(self):
         '''
         Uniprot (SigP + TMHMM): targets with predicted Signal Peptide or Trans-membrane regions, and not destined to
         organelles
 
         '''
-        self.out_df['Bucket_7_ab'] = 0
-
-        self.out_df.loc[(self.out_df['Transmembrane'].str.contains('TRANSMEM', na=False)), 'Bucket_7_ab'] = 1
-        self.out_df.loc[(self.out_df['Signal peptide'].str.contains('SIGNAL', na=False)), 'Bucket_7_ab'] = 1
-
-        self.out_df['Transmembrane'] = self.out_df['Transmembrane'].apply(self._split_loc_b7)
-        self.out_df['Signal peptide'] = self.out_df['Signal peptide'].apply(self._split_loc_b7)
+        pass
 
     ##############################################################################################################
     #
@@ -1511,38 +1228,13 @@ class Protac_buckets(object):
     #
     ##############################################################################################################
 
-    def _main_location(self, s):
-
-        if s['Reliability'] == 'Validated':
-            return s['Validated']
-        else:
-            return s['Supported']
 
     def _assign_bucket_9(self):
         '''
         HPA
         '''
 
-        # Download latest file
-        with urllib2.urlopen(
-                'https://www.proteinatlas.org/download/subcellular_location.tsv.zip') as zip_file:
-            with zipfile.ZipFile(io.BytesIO(zip_file.read()), 'r') as pa_file:
-                with pa_file.open('subcellular_location.tsv') as subcell_loc:
-                    df = pd.read_csv(subcell_loc, sep='\t', header=0)
-
-        df.rename(columns={'Gene': 'ensembl_gene_id'}, inplace=True)
-
-        df['main_location'] = df.apply(self._main_location, axis=1)
-        reliable = df[(df['Reliability'] == 'Supported') | (df['Reliability'] == 'Validated')]
-
-        reliable.drop(columns=["Approved", "Supported", "Uncertain",
-                               "Cell cycle dependency", "GO id"], axis=1, inplace=True)
-
-        self.out_df = self.out_df.merge(reliable, on='ensembl_gene_id', how='left')
-
-        self.out_df['Bucket_9_ab'] = 0
-        self.out_df.loc[(self.out_df['main_location'].str.contains("Plasma membrane", na=False)), 'Bucket_9_ab'] = 1
-
+        pass
     ##############################################################################################################
     #
     # Higher level functions relating to the overall process
@@ -1597,39 +1289,39 @@ class Protac_buckets(object):
 
         # Columns to keep. This includes columns from the small molecule pipeline
 
-        self.out_df = self.out_df[['accession',
-                                   'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4',
-                                   'Bucket_5', 'Bucket_6', 'Bucket_7',
-                                   'Bucket_8', 'Bucket_sum', 'Top_bucket', 'Category',
-                                   'Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable', 'PDB_Known_Ligand',
-                                   'ensemble', 'canonical_smiles', 'small_mol_druggable',
-                                   'Bucket_1_ab', 'Bucket_2_ab', 'Bucket_3_ab', 'Bucket_4_ab',
-                                   'Bucket_5_ab', 'Bucket_6_ab', 'Bucket_7_ab',
-                                   'Bucket_8_ab', 'Bucket_9_ab', 'Bucket_sum_ab', 'Top_bucket_ab',
-                                   'Uniprot_high_conf_loc', 'GO_high_conf_loc',
-                                   'Uniprot_med_conf_loc',
-                                   'GO_med_conf_loc', 'Transmembrane', 'Signal peptide', 'main_location'
-                                   ]]
-        self.out_df.rename(columns={'canonical_smiles': 'High_Quality_ChEMBL_compounds',
-                                    'small_mol_druggable': 'Small_Molecule_Druggable_Genome_Member',
-                                    'main_location': 'HPA_main_location', 'Signal peptide': 'Signal_peptide'}, inplace=True)
-        self.out_df.sort_values(['Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable'],
-                                ascending=[False, False, False], inplace=True)
-
-        # Score each category, and label highest category
-        self.out_df['Clinical_Precedence_ab'] = self.out_df.apply(self._clinical_precedence, axis=1)
-        self.out_df['Predicted_Tractable__High_confidence'] = self.out_df.apply(self._high_conf_pred, axis=1)
-        self.out_df['Predicted_Tractable__Medium_to_low_confidence'] = self.out_df.apply(self._med_conf_pred, axis=1)
-
-        self.out_df['Category_ab'] = 'Unknown'
-
-        self.out_df.loc[(self.out_df['Top_bucket_ab'] <= 3), 'Category_ab'] = 'Clinical_Precedence'
-        self.out_df.loc[(self.out_df['Top_bucket_ab'] == 4) | (self.out_df['Top_bucket_ab'] == 5),
-                        'Category_ab'] = 'Predicted_Tractable__High_confidence'
-
-        self.out_df.loc[
-            (self.out_df['Top_bucket_ab'] == 6) | (self.out_df['Top_bucket_ab'] == 7) | (
-                    self.out_df['Top_bucket_ab'] == 8) | (self.out_df['Top_bucket_ab'] == 9),
-            'Category_ab'] = 'Predicted_Tractable__Medium_to_low_confidence'
+        # self.out_df = self.out_df[['accession',
+        #                            'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4',
+        #                            'Bucket_5', 'Bucket_6', 'Bucket_7',
+        #                            'Bucket_8', 'Bucket_sum', 'Top_bucket', 'Category',
+        #                            'Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable', 'PDB_Known_Ligand',
+        #                            'ensemble', 'canonical_smiles', 'small_mol_druggable',
+        #                            'Bucket_1_ab', 'Bucket_2_ab', 'Bucket_3_ab', 'Bucket_4_ab',
+        #                            'Bucket_5_ab', 'Bucket_6_ab', 'Bucket_7_ab',
+        #                            'Bucket_8_ab', 'Bucket_9_ab', 'Bucket_sum_ab', 'Top_bucket_ab',
+        #                            'Uniprot_high_conf_loc', 'GO_high_conf_loc',
+        #                            'Uniprot_med_conf_loc',
+        #                            'GO_med_conf_loc', 'Transmembrane', 'Signal peptide', 'main_location'
+        #                            ]]
+        # self.out_df.rename(columns={'canonical_smiles': 'High_Quality_ChEMBL_compounds',
+        #                             'small_mol_druggable': 'Small_Molecule_Druggable_Genome_Member',
+        #                             'main_location': 'HPA_main_location', 'Signal peptide': 'Signal_peptide'}, inplace=True)
+        # self.out_df.sort_values(['Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable'],
+        #                         ascending=[False, False, False], inplace=True)
+        #
+        # # Score each category, and label highest category
+        # self.out_df['Clinical_Precedence_ab'] = self.out_df.apply(self._clinical_precedence, axis=1)
+        # self.out_df['Predicted_Tractable__High_confidence'] = self.out_df.apply(self._high_conf_pred, axis=1)
+        # self.out_df['Predicted_Tractable__Medium_to_low_confidence'] = self.out_df.apply(self._med_conf_pred, axis=1)
+        #
+        # self.out_df['Category_ab'] = 'Unknown'
+        #
+        # self.out_df.loc[(self.out_df['Top_bucket_ab'] <= 3), 'Category_ab'] = 'Clinical_Precedence'
+        # self.out_df.loc[(self.out_df['Top_bucket_ab'] == 4) | (self.out_df['Top_bucket_ab'] == 5),
+        #                 'Category_ab'] = 'Predicted_Tractable__High_confidence'
+        #
+        # self.out_df.loc[
+        #     (self.out_df['Top_bucket_ab'] == 6) | (self.out_df['Top_bucket_ab'] == 7) | (
+        #             self.out_df['Top_bucket_ab'] == 8) | (self.out_df['Top_bucket_ab'] == 9),
+        #     'Category_ab'] = 'Predicted_Tractable__Medium_to_low_confidence'
 
         return self.out_df.astype({x:'int64' for x in self.out_df.columns if "Bucket" in x})
