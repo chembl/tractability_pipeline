@@ -3,7 +3,9 @@ import pandas as pd
 import argparse
 
 
-def main(ensembl_id_list, database_url, out_file_name):
+
+
+def run(ensembl_id_list, database_url, out_file_name):
 
     # Assign tractability buckets
     setup = Pipeline_setup(ensembl_id_list)
@@ -23,7 +25,10 @@ def main(ensembl_id_list, database_url, out_file_name):
     out_buckets.to_csv(out_file_name, sep='\t')
 
 
-if __name__ == '__main__':
+def main(args=None):
+
+    if args is None:
+        args = sys.argv[1:]
 
     parser = argparse.ArgumentParser(description='Assess tractability of gene list')
     parser.add_argument('genes',
@@ -34,7 +39,6 @@ if __name__ == '__main__':
     parser.add_argument('--out_file', default='tractability_buckets.tsv',
                         help='Name of output csv file')
 
-
     args = parser.parse_args()
 
     # Get a unique list of Gene IDs from OT
@@ -43,4 +47,9 @@ if __name__ == '__main__':
 
     # URL to local ChEMBL database
     database_url = args.db
-    main(ensembl_id_list,database_url, out_file_name=args.out_file)
+
+    run(ensembl_id_list,database_url, out_file_name=args.out_file)
+
+    
+if __name__ == '__main__':
+    main()
