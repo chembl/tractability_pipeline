@@ -36,19 +36,17 @@ class Pipeline_setup(object):
         self.gene_list = ensembl_gene_id_list
         self._add_uniprot_column()
 
-    def _uniprot_primary_only(self, a):
+    def _uniprot_primary_only(self,s):
         '''
         If multiple uniprot IDs, only take primary (assume first in list is primary) <== NEEDS CHECKING
         :return:
         '''
-        if isinstance(a, dict):
-            s = a['Swiss-Prot']
-            if isinstance(s, list):
-                return s[0]
-            else:
-                return s
+
+        if isinstance(s, list):
+            return s[0]
         else:
-            return a
+            return s
+
 
     def _add_uniprot_column(self):
         '''
@@ -65,7 +63,8 @@ class Pipeline_setup(object):
                               species='human', returnall=True)
 
         self.id_xref = results
-        self.id_xref['uniprot'] = self.id_xref['uniprot'].apply(self._uniprot_primary_only)
+        print(self.id_xref.columns)
+        self.id_xref['uniprot'] = self.id_xref['uniprot.Swiss-Prot'].apply(self._uniprot_primary_only)
         self.id_xref.reset_index(inplace=True)
         # self.id_xref.rename({'_id', '_score', 'entrezgene', 'go', 'interpro', 'pdb', 'pfam','uniprot'})
         self.id_xref.rename(columns={'query': 'ensembl_gene_id', 'uniprot': 'accession'}, inplace=True)
@@ -341,7 +340,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
         for chunk in chunks:
             ligand_url = '/pdb/entry/ligand_monomers'
-            print(chunk)
+
             data = ','.join(chunk)
 
             results = json.loads(self._post_request(ligand_url, data, False))
@@ -628,7 +627,7 @@ class Antibody_buckets(object):
                 self.accepted_go_locs[line[0]] = line[2]
 
         if sm_output is not None:
-            go_data = self.id_xref[['ensembl_gene_id', 'go']]
+            go_data = self.id_xref[['ensembl_gene_id', 'go.CC']]
             self.out_df = sm_output.merge(go_data, how='outer', on='ensembl_gene_id')
 
         else:
@@ -882,7 +881,7 @@ class Antibody_buckets(object):
 
     def _set_b5_b8_flag(self, s):
         try:
-            cc = s['go']['CC']
+            cc = s['go.CC']
         except:
             return 0, [], 0, []
 
@@ -902,6 +901,11 @@ class Antibody_buckets(object):
 
         if isinstance(cc, dict):
             cc = [cc]
+
+        if not isinstance(cc, list):
+            return 0, [], 0, []
+
+
 
         for c_dict in cc:
             try:
@@ -1041,7 +1045,7 @@ class Antibody_buckets(object):
 
     def _summarise_buckets(self):
 
-        self.out_df.drop('go', inplace=True, axis=1)
+        self.out_df.drop('go.CC', inplace=True, axis=1)
 
         self.out_df['Top_bucket_ab'] = 10
         for x in range(9, 0, -1):
@@ -1112,6 +1116,8 @@ class Antibody_buckets(object):
                     self.out_df['Top_bucket_ab'] == 8) | (self.out_df['Top_bucket_ab'] == 9),
             'Category_ab'] = 'Predicted_Tractable__Medium_to_low_confidence'
 
+        self.out_df = self.out_df[(self.out_df['Top_bucket'] < 9 ) | (self.out_df['Top_bucket_ab'] < 10) ]
+
         return self.out_df.astype({x:'int64' for x in self.out_df.columns if "Bucket" in x})
 
 
@@ -1142,7 +1148,7 @@ class Protac_buckets(object):
 
 
         if sm_output is not None:
-            go_data = self.id_xref[['ensembl_gene_id', 'go']]
+            go_data = self.id_xref[['ensembl_gene_id', 'go.CC']]
             self.out_df = sm_output.merge(go_data, how='outer', on='ensembl_gene_id')
 
         else:
@@ -1253,7 +1259,7 @@ class Protac_buckets(object):
 
     def _summarise_buckets(self):
 
-        self.out_df.drop('go', inplace=True, axis=1)
+        self.out_df.drop('go.CC', inplace=True, axis=1)
 
         self.out_df['Top_bucket_ab'] = 10
         for x in range(9, 0, -1):
