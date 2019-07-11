@@ -15,6 +15,9 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=[i.strip() for i in open("requirements.txt").readlines()],
     include_package_data=True,
+    entry_points = {
+        'console_scripts': ['run-ot-pipeline=ot_tractability_pipeline.bin.run_pipeline:main'],
+    },
     classifiers=(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
