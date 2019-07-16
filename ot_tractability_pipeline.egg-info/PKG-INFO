@@ -1,0 +1,33 @@
+Metadata-Version: 2.1
+Name: ot-tractability-pipeline
+Version: 1.0
+Summary: Python script for assigning genes to tractability buckets
+Home-page: https://github.com/Cradoux/tractability_pipeline
+Author: Chris Radoux
+Author-email: cradoux@ebi.ac.uk
+License: UNKNOWN
+Description: # Open Targets Tractability Pipeline
+        
+        ## Installation
+        Change to the directory containing this file
+        
+        `pip install .`
+        
+        Install cxoracle
+        
+        Set the following environment variables:
+        
+        `CHEMBL_DB=oracle://address:to@local.chembl` 
+        
+        `CHEMBL_VERSION=25`
+        
+        ## Getting Started
+        
+        
+        
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Description-Content-Type: text/markdown

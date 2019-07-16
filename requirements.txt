@@ -1,7 +1,7 @@
 certifi
 chardet==3.0.4
 idna==2.6
-mygene==3.0.0
+mygene
 numpy==1.14.3
 pandas==0.23.0
 python-dateutil==2.7.3

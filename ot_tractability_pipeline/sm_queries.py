@@ -19,7 +19,7 @@ chembl_clinical_small_mol = """
         from {0}.molecule_dictionary md,
             {0}.molecule_hierarchy mh
         where md.molregno = mh.molregno
-        and md.therapeutic_flag = 1
+        
         and md.molecule_type = 'Small molecule'
             """.format(CHEMBL_VERSION)
 
@@ -51,7 +51,7 @@ chembl_clinical_targets = """
         and dt.tid = tc.tid
         and tc.component_id = cs.component_id
         and dm.mec_id = mr.mec_id
-        and md.therapeutic_flag = 1
+        
         and md.molecule_type = 'Small molecule'
         and td.tax_id = 9606
         and td.target_type like '%PROTEIN%'""".format(CHEMBL_VERSION)

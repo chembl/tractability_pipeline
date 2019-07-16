@@ -7,7 +7,7 @@ from {0}.molecule_dictionary md,
 	{0}.drug_indication di
 where md.molregno = mh.molregno
 and md.molregno = di.molregno
-and md.therapeutic_flag = 1
+
 and md.molecule_type = 'Antibody'
 '''.format(CHEMBL_VERSION)
 
@@ -37,7 +37,7 @@ and dm.tid = td.tid
 and td.tid = tc.tid
 and tc.component_id = cs.component_id
 and dm.mec_id = mr.mec_id
-and md.therapeutic_flag = 1
+
 and md.molecule_type = 'Antibody'
 and td.tax_id = 9606
 and td.target_type like '%PROTEIN%'

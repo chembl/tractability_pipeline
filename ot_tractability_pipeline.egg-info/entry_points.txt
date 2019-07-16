@@ -1,0 +1,3 @@
+[console_scripts]
+run-ot-pipeline = ot_tractability_pipeline.bin.run_pipeline:main
+
