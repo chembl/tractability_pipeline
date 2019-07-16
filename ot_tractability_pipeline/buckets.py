@@ -63,7 +63,7 @@ class Pipeline_setup(object):
                               species='human', returnall=True)
 
         self.id_xref = results
-        print(self.id_xref.columns)
+
         self.id_xref['uniprot'] = self.id_xref['uniprot.Swiss-Prot'].apply(self._uniprot_primary_only)
         self.id_xref.reset_index(inplace=True)
         # self.id_xref.rename({'_id', '_score', 'entrezgene', 'go', 'interpro', 'pdb', 'pfam','uniprot'})
@@ -126,7 +126,7 @@ class Small_molecule_buckets(object):
 
         if database_url is None:
             database_url = os.getenv('CHEMBL_DB')
-            print(database_url)
+
 
         # Create ChEMBL DB connection
 
@@ -280,7 +280,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
     def _post_request(self, url, data, pretty=False):
         full_url = "%s/%s/?pretty=%s" % (self.PDB_SERVER_URL, url, str(pretty).lower())
-        print(full_url)
+
         if isinstance(data, (list, tuple)):
             data = ",".join(data)
 
@@ -474,7 +474,6 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
         f = {x: 'first' for x in df.columns}
         f['canonical_smiles'] = 'count'
-        print(self.out_df.columns)
         df2 = df.groupby('accession').agg(f).reset_index(drop=True)
         df2 = df2[['accession', 'canonical_smiles', 'target_chembl_id']]
         self.out_df = df2.merge(self.out_df, how='right', on='accession')
@@ -644,7 +643,7 @@ class Antibody_buckets(object):
 
         if database_url is None:
             database_url = os.getenv('CHEMBL_DB')
-            print(database_url)
+
 
         # Create ChEMBL DB connection
         self.engine = create_engine(database_url)
@@ -1157,7 +1156,7 @@ class Protac_buckets(object):
 
         if database_url is None:
             database_url = os.getenv('CHEMBL_DB')
-            print(database_url)
+
 
         # Create ChEMBL DB connection
         self.engine = create_engine(database_url)

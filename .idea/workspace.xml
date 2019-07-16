@@ -2,12 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="64729dbe-694d-4308-a1fc-e79df8af6744" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/clinical_evidence.csv" beforeDir="false" afterPath="$PROJECT_DIR$/clinical_evidence.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ot_tractability_pipeline/ab_queries.py" beforeDir="false" afterPath="$PROJECT_DIR$/ot_tractability_pipeline/ab_queries.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ot_tractability_pipeline/sm_queries.py" beforeDir="false" afterPath="$PROJECT_DIR$/ot_tractability_pipeline/sm_queries.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ot_tractability_pipeline.egg-info/requires.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ot_tractability_pipeline.egg-info/requires.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tractability_buckets.tsv" beforeDir="false" afterPath="$PROJECT_DIR$/tractability_buckets.tsv" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -26,7 +23,7 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="buckets.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="buckets.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/buckets.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="17100">
@@ -79,18 +76,18 @@
       <file leaf-file-name="requirements.txt" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/requirements.txt">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="165">
-              <caret line="11" column="13" selection-start-line="11" selection-start-column="13" selection-end-line="11" selection-end-column="13" />
+            <state relative-caret-position="120">
+              <caret line="8" column="16" selection-start-line="8" selection-start-column="16" selection-end-line="8" selection-end-column="16" />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="README.md" pinned="false" current-in-tab="false">
+      <file leaf-file-name="README.md" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/README.md">
           <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
             <state split_layout="SPLIT">
               <first_editor relative-caret-position="285">
-                <caret line="19" selection-start-line="19" selection-end-line="19" />
+                <caret line="19" column="10" selection-start-line="19" selection-start-column="10" selection-end-line="19" selection-end-column="10" />
               </first_editor>
               <second_editor />
             </state>
@@ -124,8 +121,8 @@
       <find>CHEMBL_25</find>
       <find>test</find>
       <find>drop</find>
-      <find>'go'</find>
       <find>{}</find>
+      <find>'go'</find>
     </findStrings>
     <replaceStrings>
       <replace>CHEMBL_23</replace>
@@ -133,8 +130,8 @@
       <replace>Predicted_Tractable</replace>
       <replace>Signal_peptide</replace>
       <replace>{}</replace>
-      <replace>CHEMBL_25</replace>
       <replace>{0}</replace>
+      <replace>CHEMBL_25</replace>
     </replaceStrings>
   </component>
   <component name="Git.Settings">
@@ -171,12 +168,12 @@
         <option value="$PROJECT_DIR$/.gitignore" />
         <option value="$PROJECT_DIR$/setup.py" />
         <option value="$PROJECT_DIR$/venv/lib/python2.7/site-packages/pandas/core/groupby/groupby.py" />
-        <option value="$PROJECT_DIR$/README.md" />
         <option value="$PROJECT_DIR$/run_pipeline.py" />
         <option value="$PROJECT_DIR$/ot_tractability_pipeline/buckets.py" />
         <option value="$PROJECT_DIR$/ot_tractability_pipeline/sm_queries.py" />
         <option value="$PROJECT_DIR$/ot_tractability_pipeline/ab_queries.py" />
         <option value="$PROJECT_DIR$/requirements.txt" />
+        <option value="$PROJECT_DIR$/README.md" />
       </list>
     </option>
   </component>
@@ -400,6 +397,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-1920" y="-174" width="1920" height="1177" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Event Log" order="7" sideWeight="0.50416666" side_tool="true" weight="0.24061598" />
@@ -630,21 +628,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor relative-caret-position="285">
-            <caret line="19" selection-start-line="19" selection-end-line="19" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-      <provider editor-type-id="text-editor">
-        <state relative-caret-position="30">
-          <caret line="2" column="15" selection-start-line="2" selection-start-column="15" selection-end-line="2" selection-end-column="15" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/data/go_accepted_loc.tsv">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="150">
@@ -685,13 +668,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/requirements.txt">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="165">
-          <caret line="11" column="13" selection-start-line="11" selection-start-column="13" selection-end-line="11" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/sm_queries.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-849">
@@ -706,6 +682,28 @@
           <folding>
             <element signature="e#0#9#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/requirements.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="120">
+          <caret line="8" column="16" selection-start-line="8" selection-start-column="16" selection-end-line="8" selection-end-column="16" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="285">
+            <caret line="19" column="10" selection-start-line="19" selection-start-column="10" selection-end-line="19" selection-end-column="10" />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+      <provider editor-type-id="text-editor">
+        <state relative-caret-position="30">
+          <caret line="2" column="15" selection-start-line="2" selection-start-column="15" selection-end-line="2" selection-end-column="15" />
         </state>
       </provider>
     </entry>

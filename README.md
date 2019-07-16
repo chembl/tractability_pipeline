@@ -15,5 +15,9 @@ Set the following environment variables:
 
 ## Getting Started
 
+Run the pipeline with the following command:
 
+`run-ot-pipeline genes.csv`
+
+Where `genes.csv` is a file with one Ensembl Gene ID per line with no headers
 
