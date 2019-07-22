@@ -1,6 +1,5 @@
 import io
 import json
-import os
 import re
 import sys
 import time
@@ -9,6 +8,7 @@ import zipfile
 import mygene
 import numpy as np
 import pandas as pd
+from pandas.io.json import json_normalize
 import pkg_resources
 from sqlalchemy import create_engine
 
@@ -59,7 +59,7 @@ class Pipeline_setup(object):
         # Use MyGene to return list of Uniprot accession numbers for each ensemble gene ID
 
         results = mg.getgenes(list(self.gene_list), scopes='ensembl',
-                              as_dataframe=True, fields='uniprot.Swiss-Prot,entrezgene,pdb,go',
+                              as_dataframe=True, fields='symbol,uniprot.Swiss-Prot,entrezgene,pdb,go',
                               species='human', returnall=True)
 
         self.id_xref = results
@@ -68,6 +68,7 @@ class Pipeline_setup(object):
         self.id_xref.reset_index(inplace=True)
         # self.id_xref.rename({'_id', '_score', 'entrezgene', 'go', 'interpro', 'pdb', 'pfam','uniprot'})
         self.id_xref.rename(columns={'query': 'ensembl_gene_id', 'uniprot': 'accession'}, inplace=True)
+        print(self.id_xref.columns)
 
 
 class Small_molecule_buckets(object):
@@ -227,12 +228,15 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         def other_func(x):
             return tuple(set(x))
 
+        print(self.id_xref['symbol'])
         self._search_chembl_clinical()
         self._process_protein_complexes()
 
-        self.gene_xref = self.id_xref[['accession', 'ensembl_gene_id']]
+        self.gene_xref = self.id_xref[['accession', 'ensembl_gene_id', 'symbol']]
 
         self.out_df = self.all_chembl_targets.merge(self.gene_xref, how='outer', on='accession')
+
+
 
         self.clinical_evidence = self.out_df
 
@@ -255,6 +259,8 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         self.out_df.loc[(self.out_df['max_phase'] == 4), 'Bucket_1'] = 1
         self.out_df.loc[(self.out_df['max_phase'] < 4) & (self.out_df['max_phase'] >= 2), 'Bucket_2'] = 1
         self.out_df.loc[(self.out_df['max_phase'] < 2) & (self.out_df['max_phase'] > 0), 'Bucket_3'] = 1
+
+        print(self.out_df['symbol'])
 
     ##############################################################################################################
     #
@@ -570,8 +576,9 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         # self._assign_bucket_9()
         self._summarise_buckets()
 
+        print(self.out_df.columns)
         # Add extra buckets to the list below
-        self.out_df = self.out_df[['ensembl_gene_id', 'accession',
+        self.out_df = self.out_df[['ensembl_gene_id', 'symbol', 'accession',
                                    'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4', 'Bucket_5', 'Bucket_6', 'Bucket_7',
                                    'Bucket_8', 'Bucket_sum', 'Top_bucket',
                                    'ensemble', 'canonical_smiles', 'small_mol_druggable', 'PDB_Known_Ligand']]
@@ -1080,7 +1087,7 @@ class Antibody_buckets(object):
 
         # Columns to keep. This includes columns from the small molecule pipeline
 
-        self.out_df = self.out_df[['accession',
+        self.out_df = self.out_df[['symbol', 'accession',
                                    'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4',
                                    'Bucket_5', 'Bucket_6', 'Bucket_7',
                                    'Bucket_8', 'Bucket_sum', 'Top_bucket', 'Category',
@@ -1120,7 +1127,6 @@ class Antibody_buckets(object):
         return self.out_df.astype({x:'int64' for x in self.out_df.columns if "Bucket" in x})
 
 
-
 class Protac_buckets(object):
     '''
     Class for assigning genes to tractability buckets
@@ -1133,7 +1139,7 @@ class Protac_buckets(object):
     #
     ##############################################################################################################
 
-    def __init__(self, Pipeline_setup, database_url=None, sm_output=None):
+    def __init__(self, Pipeline_setup, database_url=None, ab_output=None):
 
         # list of ensembl IDs for targets to be considered
         self.gene_list = Pipeline_setup.gene_list
@@ -1146,20 +1152,32 @@ class Protac_buckets(object):
         # Otherwise, use the id_xref dataframe
 
 
-        if sm_output is not None:
+        if ab_output is not None:
             go_data = self.id_xref[['ensembl_gene_id', 'go.CC']]
-            self.out_df = sm_output.merge(go_data, how='outer', on='ensembl_gene_id')
+            self.out_df = ab_output.merge(go_data, how='outer', on='ensembl_gene_id')
 
         else:
             self.out_df = self.id_xref
 
+        # ChEMBL currently not used
 
-        if database_url is None:
-            database_url = os.getenv('CHEMBL_DB')
+        # if database_url is None:
+        #     database_url = os.getenv('CHEMBL_DB')
+        #
+        #
+        # # Create ChEMBL DB connection
+        # self.engine = create_engine(database_url)
 
 
-        # Create ChEMBL DB connection
-        self.engine = create_engine(database_url)
+    def _filter_locations(self):
+
+        ''''
+        For PROTACs, only intracellular targets are suitable. Therefore, we will prefilter based on location to only
+        assess those in the cytosol, nucleus or membrane with accessible portion.
+
+        '''
+
+        pass
 
     ##############################################################################################################
     #
@@ -1176,70 +1194,194 @@ class Protac_buckets(object):
 
         Group activity data by target, assign the Max Phase for each targets, and use it to assign buckets 1 to 3
 
-
+        Currently, PROTACs are not labelled in ChEMBL, and at the time of writing, only Androgen Receptor
+        (ENSG00000169083) has a phase 1 PROTAC. For now, this will be returned manually, but a decision should be made
+        about how PROTACs are labelled in ChEMBL
 
         :return:
         '''
 
-        pass
+        self.out_df['Bucket_1_PROTAC'] = 0
+        self.out_df['Bucket_2_PROTAC'] = 0
+        self.out_df['Bucket_3_PROTAC'] = 0
+
+        self.out_df.loc[(self.out_df['ensembl_gene_id'] =='ENSG00000169083' ), 'Bucket_3_PROTAC'] = 1
+
 
     ##############################################################################################################
     #
-    # Functions relating to buckets 4, 6 and 7
-    # Uniprot location
+    # Functions relating to buckets 4 and 5
+    # Protein Turnover
     #
     ##############################################################################################################
 
 
-    def _assign_bucket_4_and_6(self):
+    def _assign_bucket_4_and_5(self):
         '''
-        Uniprot (loc): Targets in "Cell membrane" or "Secreted", high confidence
+        Protein Turnover
         '''
 
-        pass
+
+
+        self.out_df['Bucket_4_PROTAC'] = 0
+        self.out_df['Bucket_5_PROTAC'] = 0
+
+        df = pd.read_csv(os.path.join(DATA_PATH, 'protein_half_life_hq.csv'))
+
+        df = df.merge(self.out_df, right_on='symbol', left_on='gene_name', how='right')
+        df = df.groupby('ensembl_gene_id', as_index=False).max()
+        df['Max_halflife'].fillna(-1, inplace=True)
+
+        self.out_df = df.merge(self.out_df, how='right', on='ensembl_gene_id', suffixes=['_drop', ''])
+
+        self.out_df.loc[(self.out_df['Max_halflife'] >= 100), 'Bucket_4_PROTAC'] = 1
+        self.out_df.loc[(self.out_df['Max_halflife'] > 24) & (self.out_df['Max_halflife'] < 100), 'Bucket_5_PROTAC'] = 1
 
     ##############################################################################################################
     #
-    # Functions relating to buckets 5 and 8
-    # GO Cell Component
+    # Functions relating to buckets 6
+    # Known ubiquitination sites
     #
     ##############################################################################################################
 
-    def _assign_bucket_5_and_8(self):
+    def _assign_bucket_6(self):
         '''
-        GO CC
+        Known ubiquitation sites
         '''
-        pass
+
+        ub_df = pd.read_csv(os.path.join(DATA_PATH, 'ubiquitination_sites.csv'))
+        self.out_df = ub_df.merge(self.out_df,on='symbol', how='right')
+
+        self.out_df['Bucket_6_PROTAC'] = 0
+        self.out_df.loc[(self.out_df['number_of_ubiquitination_sites'] > 0), 'Bucket_6_PROTAC'] = 1
+
 
     ##############################################################################################################
     #
     # Functions relating to bucket 7
-    # Uniprot transmembrane and signal peptides
+    # Predicted ubiquitination sites
     #
     ##############################################################################################################
 
     def _assign_bucket_7(self):
         '''
-        Uniprot (SigP + TMHMM): targets with predicted Signal Peptide or Trans-membrane regions, and not destined to
-        organelles
+        Predicted ubiquitination sites
 
         '''
-        pass
+        self.out_df['Bucket_7_PROTAC'] = 0
 
     ##############################################################################################################
     #
-    # Functions relating to buckets 9
-    # Human protein atlas - Main location
+    # Functions relating to buckets 8
+    # Taregts mentioned in PROTAC literature
+    #
+    ##############################################################################################################
+
+    def _search_papers(self):
+
+        with urllib2.urlopen(
+                "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=%22proteolysis%20targeting%20chimera%22&resultType=lite&cursorMark=*&pageSize=1000&format=json") as url:
+            data = json.loads(url.read().decode())
+            df = pd.read_json(json.dumps(data['resultList']['result']), orient='records')
+        return df[['authorString', 'id', 'issue',
+                 'journalTitle', 'pmcid',
+                 'pmid', 'pubType', 'pubYear', 'source', 'title', 'tmAccessionTypeList']]
+
+    def _get_tagged_targets(self):
+
+
+        articles = list(self.papers_df['search_id'].unique())
+
+        # API only able to accept 8 IDs at a time
+        n = 7
+        chunks = ['&'.join(articles[i:i + n]) for i in range(0, len(articles), n)]
+        df_lists = []
+        tags_list = []
+        for chunk in chunks:
+            url_s = 'https://www.ebi.ac.uk/europepmc/annotations_api/annotationsByArticleIds?{}&type=Gene_Proteins&format=JSON'.format(
+                chunk)
+            with urllib2.urlopen(url_s) as url:
+                data = json.loads(url.read().decode())
+                annot_df = json_normalize(data,
+                                          record_path='annotations')  # pd.read_json(json.dumps(data), orient='records')
+                tags_df = json_normalize(data, record_path=['annotations', 'tags'])
+                df_lists.append(annot_df)
+                tags_list.append(tags_df)
+            time.sleep(1.5)
+
+        self.annotations = pd.concat(df_lists)
+        self.tags = pd.concat(tags_list)
+        self.annotations.reset_index(inplace=True)
+        self.tags.reset_index(inplace=True)
+
+    def _extract_uniprot(self,row):
+        try:
+            return row['uri'].split('/')[-1]
+        except AttributeError:
+            return row['uri']
+
+    def _extract_id(self, row):
+        try:
+            short_id = row['id'].split('/')[-1].split('#')[0]
+            return short_id
+        except AttributeError:
+            return None
+
+    def _process_IDs(self):
+        grouped_tags = self.tags.groupby('name').first()
+        tagged_annotations = self.annotations.merge(grouped_tags, how='left', left_on='exact', right_on='name')
+        tagged_annotations['accession'] = tagged_annotations.apply(self._extract_uniprot, axis=1)
+
+        tagged_annotations['short_id'] = tagged_annotations.apply(self._extract_id, axis=1)
+
+        # tagged_annotations['short_id']
+        joined = tagged_annotations.merge(self.papers_df, left_on='short_id', right_on='id', how='inner')
+
+        return joined[['accession','prefix', 'exact','postfix','section','full_id','journalTitle']]
+
+
+    def _search_ID(self,row):
+        return "articleIds={}%3A{}".format(row['source'], row['id'])
+
+    def _full_ID(self,row):
+        return "http://europepmc.org/abstract/{}/{}#eur...".format(row['source'], row['id'])
+
+    def _assign_bucket_8(self):
+        '''
+        Mentioned in PROTAC literature
+        '''
+
+        self.papers_df = self._search_papers()
+        self.papers_df['search_id'] = self.papers_df.apply(self._search_ID, axis=1)
+        self.papers_df['full_id'] =self.papers_df.apply(self._full_ID, axis=1)
+
+        self._get_tagged_targets()
+
+        tagged_targets_df = self._process_IDs()
+
+        self.out_df = self.out_df.merge(tagged_targets_df, how='left', on='accession')
+
+        self.out_df['Bucket_8_PROTAC'] = 0
+        self.out_df.loc[(~self.out_df['full_id'].isna()), 'Bucket_8_PROTAC'] = 1
+
+
+
+    ##############################################################################################################
+    #
+    # Functions relating to buckets 8
+    # Small Molecule Tractable
     #
     ##############################################################################################################
 
 
     def _assign_bucket_9(self):
         '''
-        HPA
+        Small molecule tractable
         '''
 
-        pass
+        self.out_df['Bucket_9_PROTAC'] = 0
+        self.out_df.loc[(self.out_df['Top_bucket'] < 9), 'Bucket_9_PROTAC'] = 1
+
     ##############################################################################################################
     #
     # Higher level functions relating to the overall process
@@ -1247,28 +1389,28 @@ class Protac_buckets(object):
     #
     ##############################################################################################################
 
-    def _clinical_precedence(self, s):
-        return 1 * s['Bucket_1_ab'] + 0.7 * s['Bucket_2_ab'] + 0.2 * s['Bucket_3_ab']
-
-    def _high_conf_pred(self, s):
-        return 0.7 * s['Bucket_4_ab'] + 0.3 * s['Bucket_5_ab']
-
-    def _med_conf_pred(self, s):
-        return 0.4 * s['Bucket_6_ab'] + 0.25 * s['Bucket_7_ab'] + 0.25 * s['Bucket_8_ab'] + 0.1 * s['Bucket_9_ab']
+    # def _clinical_precedence(self, s):
+    #     return 1 * s['Bucket_1_ab'] + 0.7 * s['Bucket_2_ab'] + 0.2 * s['Bucket_3_ab']
+    #
+    # def _high_conf_pred(self, s):
+    #     return 0.7 * s['Bucket_4_ab'] + 0.3 * s['Bucket_5_ab']
+    #
+    # def _med_conf_pred(self, s):
+    #     return 0.4 * s['Bucket_6_ab'] + 0.25 * s['Bucket_7_ab'] + 0.25 * s['Bucket_8_ab'] + 0.1 * s['Bucket_9_ab']
 
     def _summarise_buckets(self):
 
-        self.out_df.drop('go.CC', inplace=True, axis=1)
 
-        self.out_df['Top_bucket_ab'] = 10
+
+        self.out_df['Top_bucket_PROTAC'] = 10
         for x in range(9, 0, -1):
-            self.out_df.loc[(self.out_df['Bucket_{}_ab'.format(x)] == 1), 'Top_bucket_ab'] = x
-            self.out_df['Bucket_{}_ab'.format(x)].fillna(0, inplace=True)
+            self.out_df.loc[(self.out_df['Bucket_{}_PROTAC'.format(x)] == 1), 'Top_bucket_PROTAC'] = x
+            self.out_df['Bucket_{}_PROTAC'.format(x)].fillna(0, inplace=True)
 
-        self.out_df['Bucket_sum_ab'] = self.out_df['Bucket_1_ab'] + self.out_df['Bucket_2_ab'] + self.out_df[
-            'Bucket_3_ab'] + self.out_df['Bucket_4_ab'] + self.out_df['Bucket_5_ab'] + self.out_df['Bucket_6_ab'
-                                       ] + self.out_df['Bucket_7_ab'] + self.out_df['Bucket_8_ab'] + self.out_df[
-                                           'Bucket_9_ab']
+        self.out_df['Bucket_sum_PROTAC'] = self.out_df['Bucket_1_PROTAC'] + self.out_df['Bucket_2_PROTAC'] + self.out_df[
+            'Bucket_3_PROTAC'] + self.out_df['Bucket_4_PROTAC'] + self.out_df['Bucket_5_PROTAC'] + self.out_df['Bucket_6_PROTAC'
+                                       ] + self.out_df['Bucket_7_PROTAC'] + self.out_df['Bucket_8_PROTAC'] + self.out_df[
+                                           'Bucket_9_PROTAC']
 
 
 
@@ -1281,37 +1423,43 @@ class Protac_buckets(object):
         '''
 
         self._assign_buckets_1_to_3()
-        self._assign_bucket_4_and_6()
-        self._assign_bucket_5_and_8()
+        self._assign_bucket_4_and_5()
+        self._assign_bucket_6()
         self._assign_bucket_7()
+        self._assign_bucket_8()
         self._assign_bucket_9()
 
         self._summarise_buckets()
 
         # try:
 
-        self.out_df.index = self.out_df['ensembl_gene_id']
+        #self.out_df.index = self.out_df['ensembl_gene_id']
+        self.out_df = self.out_df.groupby('ensembl_gene_id').first()
 
         # Columns to keep. This includes columns from the small molecule pipeline
 
-        # self.out_df = self.out_df[['accession',
-        #                            'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4',
-        #                            'Bucket_5', 'Bucket_6', 'Bucket_7',
-        #                            'Bucket_8', 'Bucket_sum', 'Top_bucket', 'Category',
-        #                            'Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable', 'PDB_Known_Ligand',
-        #                            'ensemble', 'canonical_smiles', 'small_mol_druggable',
-        #                            'Bucket_1_ab', 'Bucket_2_ab', 'Bucket_3_ab', 'Bucket_4_ab',
-        #                            'Bucket_5_ab', 'Bucket_6_ab', 'Bucket_7_ab',
-        #                            'Bucket_8_ab', 'Bucket_9_ab', 'Bucket_sum_ab', 'Top_bucket_ab',
-        #                            'Uniprot_high_conf_loc', 'GO_high_conf_loc',
-        #                            'Uniprot_med_conf_loc',
-        #                            'GO_med_conf_loc', 'Transmembrane', 'Signal peptide', 'main_location'
-        #                            ]]
-        # self.out_df.rename(columns={'canonical_smiles': 'High_Quality_ChEMBL_compounds',
-        #                             'small_mol_druggable': 'Small_Molecule_Druggable_Genome_Member',
-        #                             'main_location': 'HPA_main_location', 'Signal peptide': 'Signal_peptide'}, inplace=True)
-        # self.out_df.sort_values(['Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable'],
-        #                         ascending=[False, False, False], inplace=True)
+        self.out_df = self.out_df[['accession', 'symbol',
+                                   'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4',
+                                   'Bucket_5', 'Bucket_6', 'Bucket_7',
+                                   'Bucket_8', 'Bucket_sum', 'Top_bucket', 'Category',
+                                   'Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable', 'PDB_Known_Ligand',
+                                   'ensemble', 'High_Quality_ChEMBL_compounds', 'Small_Molecule_Druggable_Genome_Member',
+                                   'Bucket_1_ab', 'Bucket_2_ab', 'Bucket_3_ab', 'Bucket_4_ab',
+                                   'Bucket_5_ab', 'Bucket_6_ab', 'Bucket_7_ab',
+                                   'Bucket_8_ab', 'Bucket_9_ab', 'Bucket_sum_ab', 'Top_bucket_ab',
+                                   'Uniprot_high_conf_loc', 'GO_high_conf_loc',
+                                   'Uniprot_med_conf_loc',
+                                   'GO_med_conf_loc', 'Transmembrane', 'Signal_peptide', 'HPA_main_location',
+                                   'Bucket_1_PROTAC', 'Bucket_2_PROTAC', 'Bucket_3_PROTAC', 'Bucket_4_PROTAC',
+                                   'Bucket_5_PROTAC', 'Bucket_6_PROTAC', 'Bucket_7_PROTAC',
+                                   'Bucket_8_PROTAC', 'Bucket_9_PROTAC', 'Bucket_sum_PROTAC', 'Top_bucket_PROTAC',
+                                    'Bcell_mean', 'NKcell_mean', 'Hepatocytes_mean', 'MouseNeuorons_mean', 'Max_halflife',
+                                   'number_of_ubiquitination_sites',
+                                    'full_id'
+
+                                   ]]
+        self.out_df.sort_values(['Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable'],
+                                ascending=[False, False, False], inplace=True)
         #
         # # Score each category, and label highest category
         # self.out_df['Clinical_Precedence_ab'] = self.out_df.apply(self._clinical_precedence, axis=1)
@@ -1329,4 +1477,4 @@ class Protac_buckets(object):
         #             self.out_df['Top_bucket_ab'] == 8) | (self.out_df['Top_bucket_ab'] == 9),
         #     'Category_ab'] = 'Predicted_Tractable__Medium_to_low_confidence'
 
-        return self.out_df.astype({x:'int64' for x in self.out_df.columns if "Bucket" in x})
+        return  self.out_df#.astype({x:'int64' for x in self.out_df.columns if "Bucket" in x})

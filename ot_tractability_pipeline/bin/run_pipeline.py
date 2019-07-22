@@ -7,22 +7,30 @@ import argparse
 
 def run(ensembl_id_list, database_url, out_file_name):
 
-    # Assign tractability buckets
+    smab_buckets = pd.read_csv('tractability_buckets.tsv', sep='\t')
+    # # Assign tractability buckets
     setup = Pipeline_setup(ensembl_id_list)
+    #
+    # sm = Small_molecule_buckets(setup, database_url=database_url)
+    # sm_out_buckets = sm.assign_buckets()
+    #
+    # print(sm_out_buckets.groupby('Top_bucket')['ensembl_gene_id'].count())
+    # # sm_out_buckets.to_csv('sm_out.csv')
+    # # sm_out_buckets = pd.read_csv('sm_out.csv')
+    #
+    # ab = Antibody_buckets(setup,database_url=database_url,sm_output=sm_out_buckets)
+    # out_buckets = ab.assign_buckets()
+    # print(out_buckets.groupby('Top_bucket_ab')['accession'].count())
+    #
+    # # Antibody output also includes Small
+    # out_buckets.to_csv(out_file_name, sep='\t')
 
-    sm = Small_molecule_buckets(setup, database_url=database_url)
-    sm_out_buckets = sm.assign_buckets()
 
-    print(sm_out_buckets.groupby('Top_bucket')['ensembl_gene_id'].count())
-    # sm_out_buckets.to_csv('sm_out.csv')
-    # sm_out_buckets = pd.read_csv('sm_out.csv')
 
-    ab = Antibody_buckets(setup,database_url=database_url,sm_output=sm_out_buckets)
-    out_buckets = ab.assign_buckets()
-    print(out_buckets.groupby('Top_bucket_ab')['accession'].count())
+    protac = Protac_buckets(setup,ab_output=smab_buckets)
+    out_buckets = protac.assign_buckets()
 
-    # Antibody output also includes Small
-    out_buckets.to_csv(out_file_name, sep='\t')
+    out_buckets.to_csv('protacs.tsv', sep='\t')
 
 
 def main(args=None):
