@@ -36,7 +36,7 @@ class Pipeline_setup(object):
         self.gene_list = ensembl_gene_id_list
         self._add_uniprot_column()
 
-    def _uniprot_primary_only(self,s):
+    def _uniprot_primary_only(self, s):
         '''
         If multiple uniprot IDs, only take primary (assume first in list is primary) <== NEEDS CHECKING
         :return:
@@ -46,7 +46,6 @@ class Pipeline_setup(object):
             return s[0]
         else:
             return s
-
 
     def _add_uniprot_column(self):
         '''
@@ -128,7 +127,6 @@ class Small_molecule_buckets(object):
         if database_url is None:
             database_url = os.getenv('CHEMBL_DB')
 
-
         # Create ChEMBL DB connection
 
         try:
@@ -208,7 +206,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
             select distinct sc.component_id, cs.accession
             from {0}.component_sequences cs, {0}.site_components sc
             where cs.component_id = sc.component_id
-            and cs.accession in {1}'''.format(CHEMBL_VERSION,tuple(chunk))
+            and cs.accession in {1}'''.format(CHEMBL_VERSION, tuple(chunk))
             df_list2.append(pd.read_sql_query(q2, self.engine))
 
         binding_subunit = pd.concat(df_list2, sort=False)
@@ -235,8 +233,6 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         self.gene_xref = self.id_xref[['accession', 'ensembl_gene_id', 'symbol']]
 
         self.out_df = self.all_chembl_targets.merge(self.gene_xref, how='outer', on='accession')
-
-
 
         self.clinical_evidence = self.out_df
 
@@ -290,14 +286,12 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         if isinstance(data, (list, tuple)):
             data = ",".join(data)
 
-
         return self._make_request(full_url, data.encode())
 
     def _pdb_list(self, s):
 
         pdb = s['pdb']
         acc = s['accession']
-
 
         if isinstance(pdb, list):
             self.pdb_list += pdb
@@ -373,8 +367,6 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         else:
             return np.nan
 
-
-
     def _assess_pdb(self):
         '''
         Does the target have a ligand-bound protein crystal structure?
@@ -409,7 +401,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         df = df.groupby('ensembl_gene_id', as_index=False).max()
         df['ensemble'].fillna(-1, inplace=True)
 
-        self.out_df = df.merge(self.out_df, how='right', on='ensembl_gene_id' , suffixes=['_drop',''])
+        self.out_df = df.merge(self.out_df, how='right', on='ensembl_gene_id', suffixes=['_drop', ''])
         self.out_df['Bucket_5'] = 0
         self.out_df['Bucket_6'] = 0
 
@@ -508,7 +500,6 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         df = pd.read_csv(os.path.join(DATA_PATH, 'druggable_genome.csv'))
         df = df[['ensembl_gene_id', 'small_mol_druggable']]
 
-
         self.out_df = df.merge(self.out_df, how='right', on='ensembl_gene_id')
         self.out_df['Bucket_8'] = 0
         self.out_df.loc[(self.out_df['small_mol_druggable'] == 'Y'), 'Bucket_8'] = 1
@@ -551,7 +542,6 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         self.out_df['Bucket_sum'] = self.out_df['Bucket_1'] + self.out_df['Bucket_2'] + self.out_df[
             'Bucket_3'] + self.out_df['Bucket_4'] + self.out_df['Bucket_5'] + self.out_df['Bucket_6'] + self.out_df[
                                         'Bucket_7'] + self.out_df['Bucket_8']
-
 
     def _clinical_precedence(self, s):
         return 1 * s['Bucket_1'] + 0.7 * s['Bucket_2'] + 0.2 * s['Bucket_3']
@@ -651,7 +641,6 @@ class Antibody_buckets(object):
         if database_url is None:
             database_url = os.getenv('CHEMBL_DB')
 
-
         # Create ChEMBL DB connection
         self.engine = create_engine(database_url)
 
@@ -688,7 +677,7 @@ class Antibody_buckets(object):
             from {0}.component_sequences cs,
                 {0}.site_components sc
             where cs.component_id = sc.component_id
-            and sc.site_id in {1}'''.format(CHEMBL_VERSION,tuple(chunk))
+            and sc.site_id in {1}'''.format(CHEMBL_VERSION, tuple(chunk))
             df_list2.append(pd.read_sql_query(q2, self.engine))
 
         binding_subunit = pd.concat(df_list2, sort=False)
@@ -751,8 +740,6 @@ class Antibody_buckets(object):
             (self.out_df['max_phase_for_ind'] < 4) & (self.out_df['max_phase_for_ind'] >= 2), 'Bucket_2_ab'] = 1
         self.out_df.loc[
             (self.out_df['max_phase_for_ind'] < 2) & (self.out_df['max_phase_for_ind'] > 0), 'Bucket_3_ab'] = 1
-
-
 
     ##############################################################################################################
     #
@@ -911,8 +898,6 @@ class Antibody_buckets(object):
         if not isinstance(cc, list):
             return 0, [], 0, []
 
-
-
         for c_dict in cc:
             try:
                 go_id = c_dict['id']
@@ -1063,8 +1048,6 @@ class Antibody_buckets(object):
                                        ] + self.out_df['Bucket_7_ab'] + self.out_df['Bucket_8_ab'] + self.out_df[
                                            'Bucket_9_ab']
 
-
-
         self.out_df.set_index('ensembl_gene_id')
 
     def assign_buckets(self):
@@ -1091,7 +1074,8 @@ class Antibody_buckets(object):
                                    'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4',
                                    'Bucket_5', 'Bucket_6', 'Bucket_7',
                                    'Bucket_8', 'Bucket_sum', 'Top_bucket', 'Category',
-                                   'Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable', 'PDB_Known_Ligand',
+                                   'Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable',
+                                   'PDB_Known_Ligand',
                                    'ensemble', 'canonical_smiles', 'small_mol_druggable',
                                    'Bucket_1_ab', 'Bucket_2_ab', 'Bucket_3_ab', 'Bucket_4_ab',
                                    'Bucket_5_ab', 'Bucket_6_ab', 'Bucket_7_ab',
@@ -1102,7 +1086,8 @@ class Antibody_buckets(object):
                                    ]]
         self.out_df.rename(columns={'canonical_smiles': 'High_Quality_ChEMBL_compounds',
                                     'small_mol_druggable': 'Small_Molecule_Druggable_Genome_Member',
-                                    'main_location': 'HPA_main_location', 'Signal peptide': 'Signal_peptide'}, inplace=True)
+                                    'main_location': 'HPA_main_location', 'Signal peptide': 'Signal_peptide'},
+                           inplace=True)
         self.out_df.sort_values(['Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable'],
                                 ascending=[False, False, False], inplace=True)
 
@@ -1122,9 +1107,9 @@ class Antibody_buckets(object):
                     self.out_df['Top_bucket_ab'] == 8) | (self.out_df['Top_bucket_ab'] == 9),
             'Category_ab'] = 'Predicted_Tractable__Medium_to_low_confidence'
 
-        self.out_df = self.out_df[(self.out_df['Top_bucket'] < 9 ) | (self.out_df['Top_bucket_ab'] < 10) ]
+        # self.out_df = self.out_df[(self.out_df['Top_bucket'] < 9 ) | (self.out_df['Top_bucket_ab'] < 10) ]
 
-        return self.out_df.astype({x:'int64' for x in self.out_df.columns if "Bucket" in x})
+        return self.out_df.astype({x: 'int64' for x in self.out_df.columns if "Bucket" in x})
 
 
 class Protac_buckets(object):
@@ -1151,7 +1136,6 @@ class Protac_buckets(object):
         # If antibody results are to be combined with small molecule results, append antibody columns to sm results
         # Otherwise, use the id_xref dataframe
 
-
         if ab_output is not None:
             go_data = self.id_xref[['ensembl_gene_id', 'go.CC']]
             self.out_df = ab_output.merge(go_data, how='outer', on='ensembl_gene_id')
@@ -1169,15 +1153,126 @@ class Protac_buckets(object):
         # self.engine = create_engine(database_url)
 
 
-    def _filter_locations(self):
+    def _high_conf_locations(self, row):
+
+        try:
+            len(row['Uniprot_high_conf_loc'])
+        except TypeError:
+            row['Uniprot_high_conf_loc'] = '[]'
+
+        try:
+            len(row['GO_high_conf_loc'])
+        except TypeError:
+            row['GO_high_conf_loc'] = '[]'
+
+
+
+        if len(row['Uniprot_high_conf_loc']) ==0 and len(row['GO_high_conf_loc']) and row['PROTAC_location_Bucket'] ==5:
+            return 5
+
+
+
+
+        locations = [x[0].lower().strip() for x in eval(row['Uniprot_high_conf_loc'])] + [x[0] for x in eval(row['GO_high_conf_loc'])]
+        accepted_locations = list(set(locations) & set(self.good_locations))
+        grey_locations = list(set(locations) & set(self.grey_locations))
+        # bad_locations = list(set(locations) & set(self.bad_locations))
+
+
+
+        if len(accepted_locations) > 0:
+            return 1
+
+        elif len(grey_locations) > 0:
+            return 3
+
+        # elif len(bad_loactions) > 0:
+        #     return 7
+
+
+        # If high conf locations are known, but not in self.good_locations or self.grey_locations, they are assumed to
+        # be bad
+
+        elif row['PROTAC_location_Bucket'] ==6:
+            return 7
+
+        else:
+            #print('locations',locations, 'accepted', accepted_locations, 'grey', grey_locations)
+
+            return row['PROTAC_location_Bucket']
+
+
+
+
+    def _med_conf_locations(self,row):
+
+
+        try:
+            len(row['Uniprot_med_conf_loc'])
+        except TypeError:
+            row['Uniprot_med_conf_loc'] = '[]'
+
+        try:
+            len(row['GO_med_conf_loc'])
+        except TypeError:
+            row['GO_med_conf_loc'] = '[]'
+
+
+        if len(row['Uniprot_med_conf_loc']) == 0 and len(row['GO_med_conf_loc']) == 0:
+            return 5
+
+
+
+        locations = [x[0].lower().strip() for x in eval(row['Uniprot_med_conf_loc'])] + [x[0] for x in eval(row['GO_med_conf_loc'])]
+        accepted_locations = list(set(locations) & set(self.good_locations))
+        grey_locations = list(set(locations) & set(self.grey_locations))
+        # bad_locations = list(set(locations) & set(self.bad_locations))
+
+
+        if len(accepted_locations) > 0:
+            return 2
+
+        elif len(grey_locations) > 0:
+            return 4
+
+        # elif len(bad_loactions) > 0:
+        #     return 6
+
+        # If high conf locations are known, but not in self.good_locations or self.grey_locations, they are assumed to
+        # be bad
+
+        else:
+            return 6
+
+
+
+    def _PROTAC_location_bucket(self):
 
         ''''
-        For PROTACs, only intracellular targets are suitable. Therefore, we will prefilter based on location to only
-        assess those in the cytosol, nucleus or membrane with accessible portion.
+        For PROTACs, only intracellular targets are suitable. Therefore, we will assign a score based on location to
+        allow the targets to be filtered to those in the cytosol, nucleus or membrane with accessible portion.
 
+        1 - High confidence good location
+        2 - Med confidence good location
+        3 - High confidence grey location
+        4 - Med condifence grey location
+        5 - Unknown location
+        6 - Med confidence bad location
+        7 - High confidence bad location
         '''
 
-        pass
+        self.good_locations = ['cytoplasm', 'cytosol', 'nucleus']
+        self.grey_locations = ['membrane']
+        # self.bad_locations = ['secreted']
+
+
+
+        self.out_df['PROTAC_location_Bucket'] = 0
+
+        self.out_df['PROTAC_location_Bucket'] = self.out_df.apply(self._med_conf_locations, axis=1)
+        self.out_df['PROTAC_location_Bucket'] = self.out_df.apply(self._high_conf_locations, axis=1)
+
+
 
     ##############################################################################################################
     #
@@ -1185,8 +1280,6 @@ class Protac_buckets(object):
     # Clinical PROTAC targets
     #
     ##############################################################################################################
-
-
 
     def _assign_buckets_1_to_3(self):
         '''
@@ -1205,8 +1298,7 @@ class Protac_buckets(object):
         self.out_df['Bucket_2_PROTAC'] = 0
         self.out_df['Bucket_3_PROTAC'] = 0
 
-        self.out_df.loc[(self.out_df['ensembl_gene_id'] =='ENSG00000169083' ), 'Bucket_3_PROTAC'] = 1
-
+        self.out_df.loc[(self.out_df['ensembl_gene_id'] == 'ENSG00000169083'), 'Bucket_3_PROTAC'] = 1
 
     ##############################################################################################################
     #
@@ -1215,13 +1307,10 @@ class Protac_buckets(object):
     #
     ##############################################################################################################
 
-
     def _assign_bucket_4_and_5(self):
         '''
         Protein Turnover
         '''
-
-
 
         self.out_df['Bucket_4_PROTAC'] = 0
         self.out_df['Bucket_5_PROTAC'] = 0
@@ -1234,8 +1323,8 @@ class Protac_buckets(object):
 
         self.out_df = df.merge(self.out_df, how='right', on='ensembl_gene_id', suffixes=['_drop', ''])
 
-        self.out_df.loc[(self.out_df['Max_halflife'] >= 100), 'Bucket_4_PROTAC'] = 1
-        self.out_df.loc[(self.out_df['Max_halflife'] > 24) & (self.out_df['Max_halflife'] < 100), 'Bucket_5_PROTAC'] = 1
+        self.out_df.loc[(self.out_df['Max_halflife'] >= 24), 'Bucket_4_PROTAC'] = 1
+        self.out_df.loc[(self.out_df['Max_halflife'] > 10) & (self.out_df['Max_halflife'] < 24), 'Bucket_5_PROTAC'] = 1
 
     ##############################################################################################################
     #
@@ -1250,11 +1339,10 @@ class Protac_buckets(object):
         '''
 
         ub_df = pd.read_csv(os.path.join(DATA_PATH, 'ubiquitination_sites.csv'))
-        self.out_df = ub_df.merge(self.out_df,on='symbol', how='right')
+        self.out_df = ub_df.merge(self.out_df, on='symbol', how='right')
 
         self.out_df['Bucket_6_PROTAC'] = 0
         self.out_df.loc[(self.out_df['number_of_ubiquitination_sites'] > 0), 'Bucket_6_PROTAC'] = 1
-
 
     ##############################################################################################################
     #
@@ -1284,11 +1372,10 @@ class Protac_buckets(object):
             data = json.loads(url.read().decode())
             df = pd.read_json(json.dumps(data['resultList']['result']), orient='records')
         return df[['authorString', 'id', 'issue',
-                 'journalTitle', 'pmcid',
-                 'pmid', 'pubType', 'pubYear', 'source', 'title', 'tmAccessionTypeList']]
+                   'journalTitle', 'pmcid',
+                   'pmid', 'pubType', 'pubYear', 'source', 'title', 'tmAccessionTypeList']]
 
     def _get_tagged_targets(self):
-
 
         articles = list(self.papers_df['search_id'].unique())
 
@@ -1314,7 +1401,7 @@ class Protac_buckets(object):
         self.annotations.reset_index(inplace=True)
         self.tags.reset_index(inplace=True)
 
-    def _extract_uniprot(self,row):
+    def _extract_uniprot(self, row):
         try:
             return row['uri'].split('/')[-1]
         except AttributeError:
@@ -1337,13 +1424,12 @@ class Protac_buckets(object):
         # tagged_annotations['short_id']
         joined = tagged_annotations.merge(self.papers_df, left_on='short_id', right_on='id', how='inner')
 
-        return joined[['accession','prefix', 'exact','postfix','section','full_id','journalTitle']]
+        return joined[['accession', 'prefix', 'exact', 'postfix', 'section', 'full_id', 'journalTitle']]
 
-
-    def _search_ID(self,row):
+    def _search_ID(self, row):
         return "articleIds={}%3A{}".format(row['source'], row['id'])
 
-    def _full_ID(self,row):
+    def _full_ID(self, row):
         return "http://europepmc.org/abstract/{}/{}#eur...".format(row['source'], row['id'])
 
     def _assign_bucket_8(self):
@@ -1353,7 +1439,7 @@ class Protac_buckets(object):
 
         self.papers_df = self._search_papers()
         self.papers_df['search_id'] = self.papers_df.apply(self._search_ID, axis=1)
-        self.papers_df['full_id'] =self.papers_df.apply(self._full_ID, axis=1)
+        self.papers_df['full_id'] = self.papers_df.apply(self._full_ID, axis=1)
 
         self._get_tagged_targets()
 
@@ -1364,15 +1450,12 @@ class Protac_buckets(object):
         self.out_df['Bucket_8_PROTAC'] = 0
         self.out_df.loc[(~self.out_df['full_id'].isna()), 'Bucket_8_PROTAC'] = 1
 
-
-
     ##############################################################################################################
     #
     # Functions relating to buckets 8
     # Small Molecule Tractable
     #
     ##############################################################################################################
-
 
     def _assign_bucket_9(self):
         '''
@@ -1400,19 +1483,18 @@ class Protac_buckets(object):
 
     def _summarise_buckets(self):
 
-
-
         self.out_df['Top_bucket_PROTAC'] = 10
         for x in range(9, 0, -1):
             self.out_df.loc[(self.out_df['Bucket_{}_PROTAC'.format(x)] == 1), 'Top_bucket_PROTAC'] = x
             self.out_df['Bucket_{}_PROTAC'.format(x)].fillna(0, inplace=True)
 
-        self.out_df['Bucket_sum_PROTAC'] = self.out_df['Bucket_1_PROTAC'] + self.out_df['Bucket_2_PROTAC'] + self.out_df[
-            'Bucket_3_PROTAC'] + self.out_df['Bucket_4_PROTAC'] + self.out_df['Bucket_5_PROTAC'] + self.out_df['Bucket_6_PROTAC'
-                                       ] + self.out_df['Bucket_7_PROTAC'] + self.out_df['Bucket_8_PROTAC'] + self.out_df[
-                                           'Bucket_9_PROTAC']
-
-
+        self.out_df['Bucket_sum_PROTAC'] = self.out_df['Bucket_1_PROTAC'] + self.out_df['Bucket_2_PROTAC'] + \
+                                           self.out_df[
+                                               'Bucket_3_PROTAC'] + self.out_df['Bucket_4_PROTAC'] + self.out_df[
+                                               'Bucket_5_PROTAC'] + self.out_df['Bucket_6_PROTAC'
+                                           ] + self.out_df['Bucket_7_PROTAC'] + self.out_df['Bucket_8_PROTAC'] + \
+                                           self.out_df[
+                                               'Bucket_9_PROTAC']
 
         self.out_df.set_index('ensembl_gene_id')
 
@@ -1422,6 +1504,7 @@ class Protac_buckets(object):
         :return: A Pandas DataFrame containing the Ensembl gene ID and associated tractability bucket
         '''
 
+        self._PROTAC_location_bucket()
         self._assign_buckets_1_to_3()
         self._assign_bucket_4_and_5()
         self._assign_bucket_6()
@@ -1433,7 +1516,7 @@ class Protac_buckets(object):
 
         # try:
 
-        #self.out_df.index = self.out_df['ensembl_gene_id']
+        # self.out_df.index = self.out_df['ensembl_gene_id']
         self.out_df = self.out_df.groupby('ensembl_gene_id').first()
 
         # Columns to keep. This includes columns from the small molecule pipeline
@@ -1442,8 +1525,10 @@ class Protac_buckets(object):
                                    'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4',
                                    'Bucket_5', 'Bucket_6', 'Bucket_7',
                                    'Bucket_8', 'Bucket_sum', 'Top_bucket', 'Category',
-                                   'Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable', 'PDB_Known_Ligand',
-                                   'ensemble', 'High_Quality_ChEMBL_compounds', 'Small_Molecule_Druggable_Genome_Member',
+                                   'Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable',
+                                   'PDB_Known_Ligand',
+                                   'ensemble', 'High_Quality_ChEMBL_compounds',
+                                   'Small_Molecule_Druggable_Genome_Member',
                                    'Bucket_1_ab', 'Bucket_2_ab', 'Bucket_3_ab', 'Bucket_4_ab',
                                    'Bucket_5_ab', 'Bucket_6_ab', 'Bucket_7_ab',
                                    'Bucket_8_ab', 'Bucket_9_ab', 'Bucket_sum_ab', 'Top_bucket_ab',
@@ -1453,28 +1538,17 @@ class Protac_buckets(object):
                                    'Bucket_1_PROTAC', 'Bucket_2_PROTAC', 'Bucket_3_PROTAC', 'Bucket_4_PROTAC',
                                    'Bucket_5_PROTAC', 'Bucket_6_PROTAC', 'Bucket_7_PROTAC',
                                    'Bucket_8_PROTAC', 'Bucket_9_PROTAC', 'Bucket_sum_PROTAC', 'Top_bucket_PROTAC',
-                                    'Bcell_mean', 'NKcell_mean', 'Hepatocytes_mean', 'MouseNeuorons_mean', 'Max_halflife',
+                                   'Bcell_mean', 'NKcell_mean', 'Hepatocytes_mean', 'MouseNeuorons_mean',
+                                   'Max_halflife',
                                    'number_of_ubiquitination_sites',
-                                    'full_id'
+                                   'full_id', 'PROTAC_location_Bucket'
 
                                    ]]
         self.out_df.sort_values(['Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable'],
                                 ascending=[False, False, False], inplace=True)
-        #
-        # # Score each category, and label highest category
-        # self.out_df['Clinical_Precedence_ab'] = self.out_df.apply(self._clinical_precedence, axis=1)
-        # self.out_df['Predicted_Tractable__High_confidence'] = self.out_df.apply(self._high_conf_pred, axis=1)
-        # self.out_df['Predicted_Tractable__Medium_to_low_confidence'] = self.out_df.apply(self._med_conf_pred, axis=1)
-        #
-        # self.out_df['Category_ab'] = 'Unknown'
-        #
-        # self.out_df.loc[(self.out_df['Top_bucket_ab'] <= 3), 'Category_ab'] = 'Clinical_Precedence'
-        # self.out_df.loc[(self.out_df['Top_bucket_ab'] == 4) | (self.out_df['Top_bucket_ab'] == 5),
-        #                 'Category_ab'] = 'Predicted_Tractable__High_confidence'
-        #
-        # self.out_df.loc[
-        #     (self.out_df['Top_bucket_ab'] == 6) | (self.out_df['Top_bucket_ab'] == 7) | (
-        #             self.out_df['Top_bucket_ab'] == 8) | (self.out_df['Top_bucket_ab'] == 9),
-        #     'Category_ab'] = 'Predicted_Tractable__Medium_to_low_confidence'
 
-        return  self.out_df#.astype({x:'int64' for x in self.out_df.columns if "Bucket" in x})
+
+        self.out_df = self.out_df[(self.out_df['Top_bucket'] < 9) | (self.out_df['Top_bucket_ab'] < 10) | (
+                    self.out_df['Top_bucket_PROTAC'] < 10)]
+
+        return self.out_df.astype({x: 'int64' for x in self.out_df.columns if "Bucket" in x})
