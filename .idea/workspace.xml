@@ -2,13 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="64729dbe-694d-4308-a1fc-e79df8af6744" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/clinical_evidence.csv" beforeDir="false" afterPath="$PROJECT_DIR$/clinical_evidence.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ot_tractability_pipeline/bin/run_pipeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/ot_tractability_pipeline/bin/run_pipeline.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ot_tractability_pipeline/buckets.py" beforeDir="false" afterPath="$PROJECT_DIR$/ot_tractability_pipeline/buckets.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/protacs.tsv" beforeDir="false" afterPath="$PROJECT_DIR$/protacs.tsv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/~$protac_pipeline.xlsx" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -39,11 +33,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="run_pipeline.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="run_pipeline.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/bin/run_pipeline.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="165">
-              <caret line="11" column="4" selection-start-line="11" selection-start-column="4" selection-end-line="11" selection-end-column="4" />
+            <state relative-caret-position="375">
+              <caret line="25" column="41" lean-forward="true" selection-start-line="25" selection-start-column="41" selection-end-line="25" selection-end-column="41" />
               <folding>
                 <element signature="e#0#46#0" expanded="true" />
               </folding>
@@ -69,7 +63,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="README.md" pinned="false" current-in-tab="true">
+      <file leaf-file-name="README.md" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/README.md">
           <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
             <state split_layout="SPLIT">
@@ -161,9 +155,9 @@
         <option value="$PROJECT_DIR$/ot_tractability_pipeline/sm_queries.py" />
         <option value="$PROJECT_DIR$/ot_tractability_pipeline/ab_queries.py" />
         <option value="$PROJECT_DIR$/requirements.txt" />
-        <option value="$PROJECT_DIR$/ot_tractability_pipeline/bin/run_pipeline.py" />
         <option value="$PROJECT_DIR$/ot_tractability_pipeline/buckets.py" />
         <option value="$PROJECT_DIR$/README.md" />
+        <option value="$PROJECT_DIR$/ot_tractability_pipeline/bin/run_pipeline.py" />
       </list>
     </option>
   </component>
@@ -634,16 +628,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/bin/run_pipeline.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="165">
-          <caret line="11" column="4" selection-start-line="11" selection-start-column="4" selection-end-line="11" selection-end-column="4" />
-          <folding>
-            <element signature="e#0#46#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/sm_queries.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="671">
@@ -680,6 +664,16 @@
             <caret line="20" lean-forward="true" selection-start-line="20" selection-end-line="20" />
           </first_editor>
           <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ot_tractability_pipeline/bin/run_pipeline.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="375">
+          <caret line="25" column="41" lean-forward="true" selection-start-line="25" selection-start-column="41" selection-end-line="25" selection-end-column="41" />
+          <folding>
+            <element signature="e#0#46#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
