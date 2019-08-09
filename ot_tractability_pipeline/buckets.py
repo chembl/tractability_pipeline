@@ -1155,25 +1155,38 @@ class Protac_buckets(object):
 
     def _high_conf_locations(self, row):
 
+        if isinstance(row['Uniprot_high_conf_loc'], str):
+            if len(row['Uniprot_high_conf_loc']) == 0:
+                row['Uniprot_high_conf_loc'] = []
+            else: 
+                row['Uniprot_high_conf_loc'] = eval(row['Uniprot_high_conf_loc'])
+
+        if isinstance(row['GO_high_conf_loc'], str):
+            if len(row['GO_high_conf_loc']) == 0:
+                row['GO_high_conf_loc'] = []
+            else: 
+                row['GO_high_conf_loc'] = eval(row['GO_high_conf_loc'])
+
         try:
             len(row['Uniprot_high_conf_loc'])
         except TypeError:
-            row['Uniprot_high_conf_loc'] = '[]'
+            row['Uniprot_high_conf_loc'] = []
 
         try:
             len(row['GO_high_conf_loc'])
         except TypeError:
-            row['GO_high_conf_loc'] = '[]'
+            row['GO_high_conf_loc'] = []
 
 
 
-        if len(row['Uniprot_high_conf_loc']) ==0 and len(row['GO_high_conf_loc']) and row['PROTAC_location_Bucket'] ==5:
+        if len(row['Uniprot_high_conf_loc']) == 0 and len(row['GO_high_conf_loc']) == 0 and row['PROTAC_location_Bucket'] == 5:
             return 5
 
 
 
 
-        locations = [x[0].lower().strip() for x in eval(row['Uniprot_high_conf_loc'])] + [x[0] for x in eval(row['GO_high_conf_loc'])]
+        # locations = [x[0].lower().strip() for x in eval(row['Uniprot_high_conf_loc'])] + [x[0] for x in eval(row['GO_high_conf_loc'])]
+        locations = [x[0].lower().strip() for x in row['Uniprot_high_conf_loc']] + [x[0] for x in row['GO_high_conf_loc']]
         accepted_locations = list(set(locations) & set(self.good_locations))
         grey_locations = list(set(locations) & set(self.grey_locations))
         # bad_locations = list(set(locations) & set(self.bad_locations))
@@ -1193,7 +1206,7 @@ class Protac_buckets(object):
         # If high conf locations are known, but not in self.good_locations or self.grey_locations, they are assumed to
         # be bad
 
-        elif row['PROTAC_location_Bucket'] ==6:
+        elif row['PROTAC_location_Bucket'] == 6:
             return 7
 
         else:
@@ -1206,24 +1219,36 @@ class Protac_buckets(object):
 
     def _med_conf_locations(self,row):
 
+        if isinstance(row['Uniprot_med_conf_loc'], str):
+            if len(row['Uniprot_med_conf_loc']) == 0:
+                row['Uniprot_med_conf_loc'] = []
+            else: 
+                row['Uniprot_med_conf_loc'] = eval(row['Uniprot_med_conf_loc'])
+
+        if isinstance(row['GO_med_conf_loc'], str):
+            if len(row['GO_med_conf_loc']) == 0:
+                row['GO_med_conf_loc'] = []
+            else: 
+                row['GO_med_conf_loc'] = eval(row['GO_med_conf_loc'])
 
         try:
             len(row['Uniprot_med_conf_loc'])
         except TypeError:
-            row['Uniprot_med_conf_loc'] = '[]'
+            row['Uniprot_med_conf_loc'] = []
 
         try:
             len(row['GO_med_conf_loc'])
         except TypeError:
-            row['GO_med_conf_loc'] = '[]'
+            row['GO_med_conf_loc'] = []
 
-
+        # should this be `if len(row['Uniprot_high_conf_loc']) == 0 and len(row['GO_high_conf_loc']) == 0 and row['PROTAC_location_Bucket'] == 5:`?
         if len(row['Uniprot_med_conf_loc']) == 0 and len(row['GO_med_conf_loc']) == 0:
             return 5
 
 
 
-        locations = [x[0].lower().strip() for x in eval(row['Uniprot_med_conf_loc'])] + [x[0] for x in eval(row['GO_med_conf_loc'])]
+        #locations = [x[0].lower().strip() for x in eval(row['Uniprot_med_conf_loc'])] + [x[0] for x in eval(row['GO_med_conf_loc'])]
+        locations = [x[0].lower().strip() for x in row['Uniprot_med_conf_loc']] + [x[0] for x in row['GO_med_conf_loc']]
         accepted_locations = list(set(locations) & set(self.good_locations))
         grey_locations = list(set(locations) & set(self.grey_locations))
         # bad_locations = list(set(locations) & set(self.bad_locations))
