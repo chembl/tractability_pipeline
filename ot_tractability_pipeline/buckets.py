@@ -294,7 +294,10 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         acc = s['accession']
 
         if not isinstance(pdb, list): pdb = [pdb]
-        pdb = [p.lower() for p in pdb if isinstance(p,str) and not p is None]
+
+        # Python 2/3 compatability
+        try: pdb = [p.lower() for p in pdb if isinstance(p,(str,unicode))] #Python 2
+        except: pdb = [p.lower() for p in pdb if isinstance(p,str)] #Python 3
 
         self.pdb_list += pdb
         for p in pdb:
@@ -305,7 +308,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
             except KeyError: self.acc_map[acc] = [p]
 
         self.pdb_list = list(set(self.pdb_list))
-
+        
     def _has_ligands(self, ligand_li):
 
         ligands = [l['chem_comp_id'] for l in ligand_li if l['chem_comp_id'] not in self.ligand_filter
@@ -323,6 +326,8 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         '''
 
         self.id_xref.apply(self._pdb_list, axis=1)
+
+        # print("self.pdb_list: ", len(self.pdb_list))
         # Fails with n=1000, runs with n=750
         n = 750
         chunks = [self.pdb_list[i:i + n] for i in range(0, len(self.pdb_list), n)]
@@ -353,6 +358,10 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
             time.sleep(1.5)
 
+        # print("no_ligands: ", len(self.no_ligands))
+        # print("good_ligands: ", len(self.good_ligands))
+        # print("bad_ligands: ", len(self.bad_ligands))
+
     def _known_pdb_ligand(self, s):
 
         if s in self.acc_known_lig:
@@ -370,6 +379,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
         # Accession numbers with PDB ligand
         self.acc_known_lig = list({c for pdb in self.good_ligands for c in self.pdb_map[pdb]})
+        print("acc_known_lig: ", len(self.acc_known_lig))
 
         self.out_df['PDB_Known_Ligand'] = self.out_df['accession'].apply(self._known_pdb_ligand)
 
@@ -992,11 +1002,10 @@ class Antibody_buckets(object):
         '''
 
         # Download latest file
-        with urllib2.urlopen(
-                'https://www.proteinatlas.org/download/subcellular_location.tsv.zip') as zip_file:
-            with zipfile.ZipFile(io.BytesIO(zip_file.read()), 'r') as pa_file:
-                with pa_file.open('subcellular_location.tsv') as subcell_loc:
-                    df = pd.read_csv(subcell_loc, sep='\t', header=0)
+        zip_file = urllib2.urlopen('https://www.proteinatlas.org/download/subcellular_location.tsv.zip')
+        with zipfile.ZipFile(io.BytesIO(zip_file.read()), 'r') as pa_file:
+            with pa_file.open('subcellular_location.tsv') as subcell_loc:
+                df = pd.read_csv(subcell_loc, sep='\t', header=0)
 
         df.rename(columns={'Gene': 'ensembl_gene_id'}, inplace=True)
 
@@ -1385,10 +1394,10 @@ class Protac_buckets(object):
 
     def _search_papers(self):
 
-        with urllib2.urlopen(
-                "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=%22proteolysis%20targeting%20chimera%22&resultType=lite&cursorMark=*&pageSize=1000&format=json") as url:
-            data = json.loads(url.read().decode())
-            df = pd.read_json(json.dumps(data['resultList']['result']), orient='records')
+        url = urllib2.urlopen("https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=%22proteolysis%20targeting%20chimera%22&resultType=lite&cursorMark=*&pageSize=1000&format=json")
+        data = json.loads(url.read().decode())
+        df = pd.read_json(json.dumps(data['resultList']['result']), orient='records')
+
         return df[['authorString', 'id', 'issue',
                    'journalTitle', 'pmcid',
                    'pmid', 'pubType', 'pubYear', 'source', 'title', 'tmAccessionTypeList']]
@@ -1405,13 +1414,14 @@ class Protac_buckets(object):
         for chunk in chunks:
             url_s = 'https://www.ebi.ac.uk/europepmc/annotations_api/annotationsByArticleIds?{}&type=Gene_Proteins&format=JSON'.format(
                 chunk)
-            with urllib2.urlopen(url_s) as url:
-                data = json.loads(url.read().decode())
-                annot_df = json_normalize(data,
-                                          record_path='annotations')  # pd.read_json(json.dumps(data), orient='records')
-                tags_df = json_normalize(data, record_path=['annotations', 'tags'])
-                df_lists.append(annot_df)
-                tags_list.append(tags_df)
+            url = urllib2.urlopen(url_s)
+            data = json.loads(url.read().decode())
+            annot_df = json_normalize(data,
+                                      record_path='annotations')  # pd.read_json(json.dumps(data), orient='records')
+            tags_df = json_normalize(data, record_path=['annotations', 'tags'])
+            df_lists.append(annot_df)
+            tags_list.append(tags_df)
+
             time.sleep(1.5)
 
         self.annotations = pd.concat(df_lists)
