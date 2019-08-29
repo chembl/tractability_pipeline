@@ -293,24 +293,18 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         pdb = s['pdb']
         acc = s['accession']
 
-        if isinstance(pdb, list):
-            self.pdb_list += pdb
-            for p in pdb:
-                p = p.lower()
-                self.pdb_map[p] = acc
+        if not isinstance(pdb, list): pdb = [pdb]
+        pdb = [p.lower() for p in pdb if isinstance(p,str) and not p is None]
 
-                try:
-                    self.acc_map[acc].append(p)
-                except KeyError:
-                    self.acc_map[acc] = [p]
-        elif isinstance(pdb, str):
-            pdb = pdb.lower()
-            self.pdb_list.append(pdb)
-            self.pdb_map[pdb] = acc
-            try:
-                self.acc_map[acc].append(pdb)
-            except KeyError:
-                self.acc_map[acc] = [pdb]
+        self.pdb_list += pdb
+        for p in pdb:
+            try: self.pdb_map[p].add(acc)
+            except KeyError: self.pdb_map[p] = {acc}
+            
+            try: self.acc_map[acc].append(p)
+            except KeyError: self.acc_map[acc] = [p]
+
+        self.pdb_list = list(set(self.pdb_list))
 
     def _has_ligands(self, ligand_li):
 
@@ -329,10 +323,9 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         '''
 
         self.id_xref.apply(self._pdb_list, axis=1)
-        unique_list = [p.lower() for p in set(self.pdb_list) if p is not None]
         # Fails with n=1000, runs with n=750
         n = 750
-        chunks = [unique_list[i:i + n] for i in range(0, len(unique_list), n)]
+        chunks = [self.pdb_list[i:i + n] for i in range(0, len(self.pdb_list), n)]
 
         self.no_ligands = []
         self.good_ligands = []
@@ -376,7 +369,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         self._pdb_ligand_info()
 
         # Accession numbers with PDB ligand
-        self.acc_known_lig = list(set([self.pdb_map[p] for p in self.good_ligands]))
+        self.acc_known_lig = list({c for pdb in self.good_ligands for c in self.pdb_map[pdb]})
 
         self.out_df['PDB_Known_Ligand'] = self.out_df['accession'].apply(self._known_pdb_ligand)
 
