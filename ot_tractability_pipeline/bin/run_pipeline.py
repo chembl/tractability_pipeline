@@ -2,14 +2,15 @@ from ot_tractability_pipeline.buckets import *
 import pandas as pd
 import argparse
 import datetime
+import os
 
-def run(ensembl_id_list, database_url, out_file_name):
+def run(ensembl_id_list, database_url, out_file_name, store_fetched):
 
     #smab_buckets = pd.read_csv('tractability_buckets.tsv', sep='\t')
     # Assign tractability buckets
 
     # From Ensembl gene ID, get Uniprot, GO.CC, Symbol and PDB codes
-    setup = Pipeline_setup(ensembl_id_list)
+    setup = Pipeline_setup(ensembl_id_list, store_fetched)
 
     # Get small molecule tractability info
     sm = Small_molecule_buckets(setup, database_url=database_url)
@@ -17,7 +18,7 @@ def run(ensembl_id_list, database_url, out_file_name):
     print(sm_out_buckets.groupby('Top_bucket')['ensembl_gene_id'].count())
 
     # Get antibody tractability info
-    ab = Antibody_buckets(setup,database_url=database_url,sm_output=sm_out_buckets)
+    ab = Antibody_buckets(setup,database_url=database_url, sm_output=sm_out_buckets)
     smab_buckets = ab.assign_buckets()
     print(smab_buckets.groupby('Top_bucket_ab')['accession'].count())
 
@@ -27,8 +28,10 @@ def run(ensembl_id_list, database_url, out_file_name):
     print(out_buckets.groupby('Top_bucket_PROTAC')['accession'].count())
 
 
-    d= datetime.date.today()
+    d=datetime.date.today()
     out_buckets.to_csv('tractability_buckets_{}.tsv'.format(d), sep='\t')
+    if store_fetched:
+        out_buckets.to_csv('{}/tractability_buckets_{}.tsv'.format(store_fetched,d), sep='\t')
 
 
 def main(args=None):
@@ -44,6 +47,8 @@ def main(args=None):
 
     parser.add_argument('--out_file', default='tractability_buckets.tsv',
                         help='Name of output csv file')
+    parser.add_argument('--store_fetched_data', default=True,
+                        help='Store data fetched from external resources, good habit for future troubleshooting')
 
     args = parser.parse_args()
 
@@ -54,7 +59,15 @@ def main(args=None):
     # URL to local ChEMBL database
     database_url = args.db
 
-    run(ensembl_id_list, database_url, out_file_name=args.out_file)
+    # create external data folder
+    if args.store_fetched_data == True:
+        ts = datetime.datetime.now().strftime("%Y-%m-%d %Hh%Mm%Ss")
+        fn = "./fetched data {}".format(ts)
+        os.mkdir(fn)
+        store_fetched = fn
+    else: store_fetched = False 
+
+    run(ensembl_id_list, database_url, out_file_name=args.out_file, store_fetched=store_fetched)
 
 
 if __name__ == '__main__':
