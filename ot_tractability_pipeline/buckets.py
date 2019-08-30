@@ -308,7 +308,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
             except KeyError: self.acc_map[acc] = [p]
 
         self.pdb_list = list(set(self.pdb_list))
-        
+
     def _has_ligands(self, ligand_li):
 
         ligands = [l['chem_comp_id'] for l in ligand_li if l['chem_comp_id'] not in self.ligand_filter
@@ -327,7 +327,6 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
         self.id_xref.apply(self._pdb_list, axis=1)
 
-        # print("self.pdb_list: ", len(self.pdb_list))
         # Fails with n=1000, runs with n=750
         n = 750
         chunks = [self.pdb_list[i:i + n] for i in range(0, len(self.pdb_list), n)]
@@ -358,10 +357,6 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
             time.sleep(1.5)
 
-        # print("no_ligands: ", len(self.no_ligands))
-        # print("good_ligands: ", len(self.good_ligands))
-        # print("bad_ligands: ", len(self.bad_ligands))
-
     def _known_pdb_ligand(self, s):
 
         if s in self.acc_known_lig:
@@ -379,7 +374,6 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
         # Accession numbers with PDB ligand
         self.acc_known_lig = list({c for pdb in self.good_ligands for c in self.pdb_map[pdb]})
-        print("acc_known_lig: ", len(self.acc_known_lig))
 
         self.out_df['PDB_Known_Ligand'] = self.out_df['accession'].apply(self._known_pdb_ligand)
 
@@ -1395,7 +1389,9 @@ class Protac_buckets(object):
     def _search_papers(self):
 
         url = urllib2.urlopen("https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=%22proteolysis%20targeting%20chimera%22&resultType=lite&cursorMark=*&pageSize=1000&format=json")
-        data = json.loads(url.read().decode())
+        data = url.read()
+        try: data = json.loads(data.decode())
+        except UnicodeDecodeError: data = json.loads(data)
         df = pd.read_json(json.dumps(data['resultList']['result']), orient='records')
 
         return df[['authorString', 'id', 'issue',
@@ -1412,10 +1408,11 @@ class Protac_buckets(object):
         df_lists = []
         tags_list = []
         for chunk in chunks:
-            url_s = 'https://www.ebi.ac.uk/europepmc/annotations_api/annotationsByArticleIds?{}&type=Gene_Proteins&format=JSON'.format(
-                chunk)
+            url_s = 'https://www.ebi.ac.uk/europepmc/annotations_api/annotationsByArticleIds?{}&type=Gene_Proteins&format=JSON'.format(chunk)
             url = urllib2.urlopen(url_s)
-            data = json.loads(url.read().decode())
+            data = url.read()
+            try: data = json.loads(data.decode())
+            except UnicodeDecodeError: data = json.loads(data)
             annot_df = json_normalize(data,
                                       record_path='annotations')  # pd.read_json(json.dumps(data), orient='records')
             tags_df = json_normalize(data, record_path=['annotations', 'tags'])
