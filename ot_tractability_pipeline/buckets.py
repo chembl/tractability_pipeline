@@ -1594,7 +1594,6 @@ class Protac_buckets(object):
         self.out_df = self.out_df.groupby('ensembl_gene_id').first()
 
         # Columns to keep. This includes columns from the small molecule pipeline
-
         self.out_df = self.out_df[['accession', 'symbol',
                                    'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4',
                                    'Bucket_5', 'Bucket_6', 'Bucket_7',
@@ -1606,6 +1605,7 @@ class Protac_buckets(object):
                                    'Bucket_1_ab', 'Bucket_2_ab', 'Bucket_3_ab', 'Bucket_4_ab',
                                    'Bucket_5_ab', 'Bucket_6_ab', 'Bucket_7_ab',
                                    'Bucket_8_ab', 'Bucket_9_ab', 'Bucket_sum_ab', 'Top_bucket_ab',
+                                   'Clinical_Precedence_ab', 'Predicted_Tractable__High_confidence', 'Predicted_Tractable__Medium_to_low_confidence', 'Category_ab',
                                    'Uniprot_high_conf_loc', 'GO_high_conf_loc',
                                    'Uniprot_med_conf_loc',
                                    'GO_med_conf_loc', 'Transmembrane', 'Signal_peptide', 'HPA_main_location',
@@ -1616,7 +1616,6 @@ class Protac_buckets(object):
                                    'Max_halflife',
                                    'number_of_ubiquitination_sites',
                                    'full_id', 'PROTAC_location_Bucket'
-
                                    ]]
         self.out_df.sort_values(['Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable'],
                                 ascending=[False, False, False], inplace=True)
