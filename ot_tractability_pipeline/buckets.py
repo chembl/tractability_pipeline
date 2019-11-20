@@ -23,18 +23,19 @@ else:
 
 DATA_PATH = pkg_resources.resource_filename('ot_tractability_pipeline', 'data/')
 
-
 class Pipeline_setup(object):
     '''
     Information retrieved from MyGene is used in both the small molecule and antibody pipelines. This class handles
     the aggregation of data ahead of assigning targets to buckets
     '''
 
-    def __init__(self, ensembl_gene_id_list):
+    def __init__(self, ensembl_gene_id_list, store_fetched):
 
         # list of ensembl IDs for targets to be considered
+        self.store_fetched = store_fetched
         self.gene_list = ensembl_gene_id_list
         self._add_uniprot_column()
+        
 
     def _uniprot_primary_only(self, s):
         '''
@@ -69,6 +70,9 @@ class Pipeline_setup(object):
         self.id_xref.rename(columns={'query': 'ensembl_gene_id', 'uniprot': 'accession'}, inplace=True)
         print(self.id_xref.columns)
 
+        if self.store_fetched: 
+            self.id_xref.to_csv("{}/id_xref.csv".format(self.store_fetched))
+
 
 class Small_molecule_buckets(object):
     '''
@@ -83,7 +87,7 @@ class Small_molecule_buckets(object):
     ##############################################################################################################
 
     def __init__(self, Pipeline_setup, database_url=None, ligand_filter=list()):
-
+        self.store_fetched = Pipeline_setup.store_fetched
         # list of ensembl IDs for targets to be considered
         self.gene_list = Pipeline_setup.gene_list
 
@@ -162,6 +166,9 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         self.all_chembl_targets = pd.read_sql_query(chembl_clinical_targets, self.engine)
         self.all_chembl_targets = self.all_chembl_targets.merge(small_mol_info, on='parent_molregno')
 
+        if self.store_fetched: 
+            self.all_chembl_targets.to_csv("{}/sm_all_chembl_targets.csv".format(self.store_fetched))
+
     def _process_protein_complexes(self):
         '''
         For protein complexes, see if we know the binding subunit, and only keep these
@@ -190,6 +197,10 @@ Please supply a valid database URL to your local ChEMBL installation using one o
 
         # Merge will set those with unknown binding site as NAN
         binding_site_info = pd.concat(df_list, sort=False)
+
+        if self.store_fetched: 
+            binding_site_info.to_csv("{}/sm_chembl_binding_site_info.csv".format(self.store_fetched))
+
         pc = pc.merge(binding_site_info, how='left', on='tid')
         defined = pc[pc['site_id'].notnull()]
         undefined = pc[~pc['site_id'].notnull()]
@@ -210,6 +221,10 @@ Please supply a valid database URL to your local ChEMBL installation using one o
             df_list2.append(pd.read_sql_query(q2, self.engine))
 
         binding_subunit = pd.concat(df_list2, sort=False)
+
+        if self.store_fetched: 
+            binding_subunit.to_csv("{}/sm_chembl_binding_subunit.csv".format(self.store_fetched))
+
         temp_pc = pc.merge(binding_subunit, on='accession')
         binding_subunits = temp_pc[temp_pc['component_id'].notnull()]
 
@@ -293,24 +308,21 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         pdb = s['pdb']
         acc = s['accession']
 
-        if isinstance(pdb, list):
-            self.pdb_list += pdb
-            for p in pdb:
-                p = p.lower()
-                self.pdb_map[p] = acc
+        if not isinstance(pdb, list): pdb = [pdb]
 
-                try:
-                    self.acc_map[acc].append(p)
-                except KeyError:
-                    self.acc_map[acc] = [p]
-        elif isinstance(pdb, str):
-            pdb = pdb.lower()
-            self.pdb_list.append(pdb)
-            self.pdb_map[pdb] = acc
-            try:
-                self.acc_map[acc].append(pdb)
-            except KeyError:
-                self.acc_map[acc] = [pdb]
+        # Python 2/3 compatability
+        try: pdb = [p.lower() for p in pdb if isinstance(p,(str,unicode))] #Python 2
+        except: pdb = [p.lower() for p in pdb if isinstance(p,str)] #Python 3
+
+        self.pdb_list += pdb
+        for p in pdb:
+            try: self.pdb_map[p].add(acc)
+            except KeyError: self.pdb_map[p] = {acc}
+            
+            try: self.acc_map[acc].append(p)
+            except KeyError: self.acc_map[acc] = [p]
+
+        self.pdb_list = list(set(self.pdb_list))
 
     def _has_ligands(self, ligand_li):
 
@@ -329,22 +341,23 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         '''
 
         self.id_xref.apply(self._pdb_list, axis=1)
-        unique_list = [p.lower() for p in set(self.pdb_list) if p is not None]
+
         # Fails with n=1000, runs with n=750
         n = 750
-        chunks = [unique_list[i:i + n] for i in range(0, len(unique_list), n)]
+        chunks = [self.pdb_list[i:i + n] for i in range(0, len(self.pdb_list), n)]
 
         self.no_ligands = []
         self.good_ligands = []
         self.bad_ligands = []
 
+        all_results = {}
         for chunk in chunks:
             ligand_url = '/pdb/entry/ligand_monomers'
 
             data = ','.join(chunk)
 
             results = json.loads(self._post_request(ligand_url, data, False))
-
+            all_results.update(results)
             # PDBs without ligands are not returned
             chunk_no_ligand = [p for p in chunk if p not in results.keys()]
 
@@ -359,6 +372,10 @@ Please supply a valid database URL to your local ChEMBL installation using one o
             self.bad_ligands += chunk_bad_ligand
 
             time.sleep(1.5)
+
+        if self.store_fetched: 
+            json.dump(all_results, open("{}/sm_pdb_ligand_info.json".format(self.store_fetched), 'wt'))
+
 
     def _known_pdb_ligand(self, s):
 
@@ -376,7 +393,7 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         self._pdb_ligand_info()
 
         # Accession numbers with PDB ligand
-        self.acc_known_lig = list(set([self.pdb_map[p] for p in self.good_ligands]))
+        self.acc_known_lig = list({c for pdb in self.good_ligands for c in self.pdb_map[pdb]})
 
         self.out_df['PDB_Known_Ligand'] = self.out_df['accession'].apply(self._known_pdb_ligand)
 
@@ -425,6 +442,9 @@ Please supply a valid database URL to your local ChEMBL installation using one o
                                      pd.read_sql_query(Imax_q, self.engine),
                                      pd.read_sql_query(Emax_q, self.engine)], sort=False)
 
+        if self.store_fetched: 
+            self.activities.to_csv("{}/sm_chembl_activities.csv".format(self.store_fetched))
+
         # For faster testing
         # self.activities = pd.read_sql_query(pchembl_q, self.engine)
 
@@ -444,6 +464,10 @@ Please supply a valid database URL to your local ChEMBL installation using one o
         '''.format(CHEMBL_VERSION)
 
         alerts = pd.read_sql_query(q, self.engine)
+
+        if self.store_fetched: 
+            alerts.to_csv("{}/sm_chembl_alerts.csv".format(self.store_fetched))
+
         alerts = alerts.groupby('canonical_smiles', as_index=False).count()
 
         return alerts
@@ -604,7 +628,7 @@ class Antibody_buckets(object):
     ##############################################################################################################
 
     def __init__(self, Pipeline_setup, database_url=None, sm_output=None):
-
+        self.store_fetched = Pipeline_setup.store_fetched
         # list of ensembl IDs for targets to be considered
         self.gene_list = Pipeline_setup.gene_list
 
@@ -681,6 +705,10 @@ class Antibody_buckets(object):
             df_list2.append(pd.read_sql_query(q2, self.engine))
 
         binding_subunit = pd.concat(df_list2, sort=False)
+
+        if self.store_fetched: 
+            binding_subunit.to_csv("{}/ab_chembl_binding_subunit.csv".format(self.store_fetched))
+
         temp_pc = pc.merge(binding_subunit, on='accession')
         binding_subunits = temp_pc[temp_pc['component_id'].notnull()]
 
@@ -706,6 +734,9 @@ class Antibody_buckets(object):
 
         ab_info = pd.read_sql_query(chembl_clinical_ab, self.engine)
         self.all_chembl_targets = self.all_chembl_targets.merge(ab_info, how='left', on='parent_molregno')
+
+        if self.store_fetched: 
+            self.all_chembl_targets.to_csv("{}/ab_all_chembl_targets.csv".format(self.store_fetched))
 
         # Make sure max phase is for correct indication
 
@@ -859,6 +890,10 @@ class Antibody_buckets(object):
         df['uniprot_loc_test'] = df['Subcellular location [CC]']
 
         df['Subcellular location [CC]'] = df['Subcellular location [CC]'].apply(self.split_loc)
+
+        if self.store_fetched: 
+            df.to_csv("{}/ab_uniprot_for_buckets_4_and_6.csv".format(self.store_fetched))
+
         df['Bucket_4_ab'], df['Uniprot_high_conf_loc'] = zip(*df.apply(self._set_b4_flag, axis=1))
         df['Bucket_6_ab'], df['Uniprot_med_conf_loc'] = zip(*df.apply(self._set_b6_flag, axis=1))
         df.rename(columns={'Entry': 'accession'}, inplace=True)
@@ -999,13 +1034,15 @@ class Antibody_buckets(object):
         '''
 
         # Download latest file
-        with urllib2.urlopen(
-                'https://www.proteinatlas.org/download/subcellular_location.tsv.zip') as zip_file:
-            with zipfile.ZipFile(io.BytesIO(zip_file.read()), 'r') as pa_file:
-                with pa_file.open('subcellular_location.tsv') as subcell_loc:
-                    df = pd.read_csv(subcell_loc, sep='\t', header=0)
+        zip_file = urllib2.urlopen('https://www.proteinatlas.org/download/subcellular_location.tsv.zip')
+        with zipfile.ZipFile(io.BytesIO(zip_file.read()), 'r') as pa_file:
+            with pa_file.open('subcellular_location.tsv') as subcell_loc:
+                df = pd.read_csv(subcell_loc, sep='\t', header=0)
 
         df.rename(columns={'Gene': 'ensembl_gene_id'}, inplace=True)
+
+        if self.store_fetched: 
+            df.to_csv("{}/ab_proteinatlas_for_bucket_9.csv".format(self.store_fetched))
 
         df['main_location'] = df.apply(self._main_location, axis=1)
         reliable = df[(df['Reliability'] == 'Supported') | (df['Reliability'] == 'Validated')]
@@ -1125,7 +1162,7 @@ class Protac_buckets(object):
     ##############################################################################################################
 
     def __init__(self, Pipeline_setup, database_url=None, ab_output=None):
-
+        self.store_fetched = Pipeline_setup.store_fetched
         # list of ensembl IDs for targets to be considered
         self.gene_list = Pipeline_setup.gene_list
 
@@ -1155,25 +1192,38 @@ class Protac_buckets(object):
 
     def _high_conf_locations(self, row):
 
+        if isinstance(row['Uniprot_high_conf_loc'], str):
+            if len(row['Uniprot_high_conf_loc']) == 0:
+                row['Uniprot_high_conf_loc'] = []
+            else: 
+                row['Uniprot_high_conf_loc'] = eval(row['Uniprot_high_conf_loc'])
+
+        if isinstance(row['GO_high_conf_loc'], str):
+            if len(row['GO_high_conf_loc']) == 0:
+                row['GO_high_conf_loc'] = []
+            else: 
+                row['GO_high_conf_loc'] = eval(row['GO_high_conf_loc'])
+
         try:
             len(row['Uniprot_high_conf_loc'])
         except TypeError:
-            row['Uniprot_high_conf_loc'] = '[]'
+            row['Uniprot_high_conf_loc'] = []
 
         try:
             len(row['GO_high_conf_loc'])
         except TypeError:
-            row['GO_high_conf_loc'] = '[]'
+            row['GO_high_conf_loc'] = []
 
 
 
-        if len(row['Uniprot_high_conf_loc']) ==0 and len(row['GO_high_conf_loc']) and row['PROTAC_location_Bucket'] ==5:
+        if len(row['Uniprot_high_conf_loc']) == 0 and len(row['GO_high_conf_loc']) == 0 and row['PROTAC_location_Bucket'] == 5:
             return 5
 
 
 
 
-        locations = [x[0].lower().strip() for x in eval(row['Uniprot_high_conf_loc'])] + [x[0] for x in eval(row['GO_high_conf_loc'])]
+        # locations = [x[0].lower().strip() for x in eval(row['Uniprot_high_conf_loc'])] + [x[0] for x in eval(row['GO_high_conf_loc'])]
+        locations = [x[0].lower().strip() for x in row['Uniprot_high_conf_loc']] + [x[0] for x in row['GO_high_conf_loc']]
         accepted_locations = list(set(locations) & set(self.good_locations))
         grey_locations = list(set(locations) & set(self.grey_locations))
         # bad_locations = list(set(locations) & set(self.bad_locations))
@@ -1193,7 +1243,7 @@ class Protac_buckets(object):
         # If high conf locations are known, but not in self.good_locations or self.grey_locations, they are assumed to
         # be bad
 
-        elif row['PROTAC_location_Bucket'] ==6:
+        elif row['PROTAC_location_Bucket'] == 6:
             return 7
 
         else:
@@ -1206,24 +1256,36 @@ class Protac_buckets(object):
 
     def _med_conf_locations(self,row):
 
+        if isinstance(row['Uniprot_med_conf_loc'], str):
+            if len(row['Uniprot_med_conf_loc']) == 0:
+                row['Uniprot_med_conf_loc'] = []
+            else: 
+                row['Uniprot_med_conf_loc'] = eval(row['Uniprot_med_conf_loc'])
+
+        if isinstance(row['GO_med_conf_loc'], str):
+            if len(row['GO_med_conf_loc']) == 0:
+                row['GO_med_conf_loc'] = []
+            else: 
+                row['GO_med_conf_loc'] = eval(row['GO_med_conf_loc'])
 
         try:
             len(row['Uniprot_med_conf_loc'])
         except TypeError:
-            row['Uniprot_med_conf_loc'] = '[]'
+            row['Uniprot_med_conf_loc'] = []
 
         try:
             len(row['GO_med_conf_loc'])
         except TypeError:
-            row['GO_med_conf_loc'] = '[]'
+            row['GO_med_conf_loc'] = []
 
-
+        # should this be `if len(row['Uniprot_high_conf_loc']) == 0 and len(row['GO_high_conf_loc']) == 0 and row['PROTAC_location_Bucket'] == 5:`?
         if len(row['Uniprot_med_conf_loc']) == 0 and len(row['GO_med_conf_loc']) == 0:
             return 5
 
 
 
-        locations = [x[0].lower().strip() for x in eval(row['Uniprot_med_conf_loc'])] + [x[0] for x in eval(row['GO_med_conf_loc'])]
+        #locations = [x[0].lower().strip() for x in eval(row['Uniprot_med_conf_loc'])] + [x[0] for x in eval(row['GO_med_conf_loc'])]
+        locations = [x[0].lower().strip() for x in row['Uniprot_med_conf_loc']] + [x[0] for x in row['GO_med_conf_loc']]
         accepted_locations = list(set(locations) & set(self.good_locations))
         grey_locations = list(set(locations) & set(self.grey_locations))
         # bad_locations = list(set(locations) & set(self.bad_locations))
@@ -1367,10 +1429,12 @@ class Protac_buckets(object):
 
     def _search_papers(self):
 
-        with urllib2.urlopen(
-                "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=%22proteolysis%20targeting%20chimera%22&resultType=lite&cursorMark=*&pageSize=1000&format=json") as url:
-            data = json.loads(url.read().decode())
-            df = pd.read_json(json.dumps(data['resultList']['result']), orient='records')
+        url = urllib2.urlopen("https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=%22proteolysis%20targeting%20chimera%22&resultType=lite&cursorMark=*&pageSize=1000&format=json")
+        data = url.read()
+        try: data = json.loads(data.decode())
+        except UnicodeDecodeError: data = json.loads(data)
+        df = pd.read_json(json.dumps(data['resultList']['result']), orient='records')
+
         return df[['authorString', 'id', 'issue',
                    'journalTitle', 'pmcid',
                    'pmid', 'pubType', 'pubYear', 'source', 'title', 'tmAccessionTypeList']]
@@ -1385,21 +1449,27 @@ class Protac_buckets(object):
         df_lists = []
         tags_list = []
         for chunk in chunks:
-            url_s = 'https://www.ebi.ac.uk/europepmc/annotations_api/annotationsByArticleIds?{}&type=Gene_Proteins&format=JSON'.format(
-                chunk)
-            with urllib2.urlopen(url_s) as url:
-                data = json.loads(url.read().decode())
-                annot_df = json_normalize(data,
-                                          record_path='annotations')  # pd.read_json(json.dumps(data), orient='records')
-                tags_df = json_normalize(data, record_path=['annotations', 'tags'])
-                df_lists.append(annot_df)
-                tags_list.append(tags_df)
+            url_s = 'https://www.ebi.ac.uk/europepmc/annotations_api/annotationsByArticleIds?{}&type=Gene_Proteins&format=JSON'.format(chunk)
+            url = urllib2.urlopen(url_s)
+            data = url.read()
+            try: data = json.loads(data.decode())
+            except UnicodeDecodeError: data = json.loads(data)
+            annot_df = json_normalize(data,
+                                      record_path='annotations')  # pd.read_json(json.dumps(data), orient='records')
+            tags_df = json_normalize(data, record_path=['annotations', 'tags'])
+            df_lists.append(annot_df)
+            tags_list.append(tags_df)
+
             time.sleep(1.5)
 
         self.annotations = pd.concat(df_lists)
         self.tags = pd.concat(tags_list)
         self.annotations.reset_index(inplace=True)
         self.tags.reset_index(inplace=True)
+
+        if self.store_fetched: 
+            self.annotations.to_csv("{}/protac_pmc_annotations.csv".format(self.store_fetched), encoding='utf-8')
+            self.tags.to_csv("{}/protac_pmc_tags.csv".format(self.store_fetched), encoding='utf-8')
 
     def _extract_uniprot(self, row):
         try:
@@ -1438,6 +1508,10 @@ class Protac_buckets(object):
         '''
 
         self.papers_df = self._search_papers()
+        
+        if self.store_fetched: 
+            self.papers_df.to_csv("{}/protac_pmc_papers.csv".format(self.store_fetched), encoding='utf-8')
+
         self.papers_df['search_id'] = self.papers_df.apply(self._search_ID, axis=1)
         self.papers_df['full_id'] = self.papers_df.apply(self._full_ID, axis=1)
 
@@ -1520,7 +1594,6 @@ class Protac_buckets(object):
         self.out_df = self.out_df.groupby('ensembl_gene_id').first()
 
         # Columns to keep. This includes columns from the small molecule pipeline
-
         self.out_df = self.out_df[['accession', 'symbol',
                                    'Bucket_1', 'Bucket_2', 'Bucket_3', 'Bucket_4',
                                    'Bucket_5', 'Bucket_6', 'Bucket_7',
@@ -1532,6 +1605,7 @@ class Protac_buckets(object):
                                    'Bucket_1_ab', 'Bucket_2_ab', 'Bucket_3_ab', 'Bucket_4_ab',
                                    'Bucket_5_ab', 'Bucket_6_ab', 'Bucket_7_ab',
                                    'Bucket_8_ab', 'Bucket_9_ab', 'Bucket_sum_ab', 'Top_bucket_ab',
+                                   'Clinical_Precedence_ab', 'Predicted_Tractable__High_confidence', 'Predicted_Tractable__Medium_to_low_confidence', 'Category_ab',
                                    'Uniprot_high_conf_loc', 'GO_high_conf_loc',
                                    'Uniprot_med_conf_loc',
                                    'GO_med_conf_loc', 'Transmembrane', 'Signal_peptide', 'HPA_main_location',
@@ -1542,7 +1616,6 @@ class Protac_buckets(object):
                                    'Max_halflife',
                                    'number_of_ubiquitination_sites',
                                    'full_id', 'PROTAC_location_Bucket'
-
                                    ]]
         self.out_df.sort_values(['Clinical_Precedence', 'Discovery_Precedence', 'Predicted_Tractable'],
                                 ascending=[False, False, False], inplace=True)
